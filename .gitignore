@@ -1,0 +1,11 @@
+venv/
+node_modules/
+__pycache__/
+
+.wwebjs_auth/
+.wwebjs_cache/
+
+.env
+ward_ai.db
+
+*.pyc
