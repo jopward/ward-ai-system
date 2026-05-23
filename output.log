@@ -1,0 +1,34 @@
+INFO:     Started server process [41012]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
+WARNING:  Invalid HTTP request received.
+INFO:     127.0.0.1:46386 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51294 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56362 - "POST /chat HTTP/1.1" 200 OK
+INFO:     64.62.156.212:49214 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51094 - "POST /chat HTTP/1.1" 200 OK
+INFO:     64.62.156.215:44671 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     64.62.156.221:58887 - "GET http%3A//api.ipify.org/?format=json HTTP/1.1" 404 Not Found
+INFO:     64.62.156.212:31645 - "CONNECT www.shadowserver.org%3A443 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:44518 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54344 - "POST /chat HTTP/1.1" 200 OK
+INFO:     14.17.101.98:3635 - "GET / HTTP/1.0" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     16.58.56.214:59422 - "GET / HTTP/1.1" 200 OK
+INFO:     16.58.56.214:45574 - "GET / HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     37.182.104.50:43600 - "GET / HTTP/1.0" 200 OK
+INFO:     167.99.121.113:55238 - "GET /.env HTTP/1.1" 404 Not Found
+INFO:     69.5.169.101:18707 - "GET / HTTP/1.1" 200 OK
+INFO:     5.226.140.32:4596 - "GET / HTTP/1.1" 200 OK
+INFO:     195.206.182.199:5032 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:39208 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49336 - "POST /chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43868 - "POST /chat HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [41012]

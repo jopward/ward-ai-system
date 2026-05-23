@@ -3,7 +3,20 @@ const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 
 const client = new Client({
-    authStrategy: new LocalAuth()
+    authStrategy: new LocalAuth(),
+
+    puppeteer: {
+        headless: true,
+        executablePath: '/usr/bin/chromium-browser',
+
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--disable-features=site-per-process'
+        ]
+    }
 });
 
 client.on('qr', (qr) => {
@@ -14,31 +27,56 @@ client.on('ready', () => {
     console.log('✅ WhatsApp AI Ready!');
 });
 
+const messageBuffers = {};
+const messageTimers = {};
+const userBuffers = {};
 client.on('message', async (message) => {
 
     if (message.fromMe) return;
 
-    try {
+    const userId = message.from;
 
-        const response = await axios.post(
-            'http://127.0.0.1:8000/chat',
-            {
-                user_id: message.from,
-                text: message.body
-            }
-        );
-
-        const aiReply = response.data.ai_reply;
-
-        await message.reply(aiReply);
-
-    } catch (error) {
-
-        console.log(error);
-
-        await message.reply("AI Error");
-
+    if (!userBuffers[userId]) {
+        userBuffers[userId] = {
+            messages: [],
+            timer: null
+        };
     }
+
+    userBuffers[userId].messages.push(message.body);
+
+    clearTimeout(userBuffers[userId].timer);
+
+    userBuffers[userId].timer = setTimeout(async () => {
+
+        const fullMessage =
+            userBuffers[userId].messages.join(' ');
+
+        userBuffers[userId].messages = [];
+
+        try {
+
+            const response = await axios.post(
+                'http://127.0.0.1:8001/chat',
+                {
+                    user_id: userId,
+                    text: fullMessage
+                }
+            );
+
+            const aiReply = response.data.ai_reply;
+
+            await message.reply(aiReply);
+
+        } catch (error) {
+
+            console.log(error);
+
+            await message.reply("AI Error");
+
+        }
+
+    }, 2000);
 
 });
 
