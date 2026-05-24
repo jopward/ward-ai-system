@@ -2,11 +2,14 @@ import os
 
 from groq import Groq
 from dotenv import load_dotenv
+
 from app.services.mode_service import get_mode
 
 from app.services.memory_service import (
     save_message,
-    get_messages
+    get_messages,
+    get_user_memory,
+    delete_memory_type
 )
 
 from app.services.tools_service import run_tool
@@ -18,15 +21,100 @@ client = Groq(
 )
 
 
+def extract_memory(user_id, message):
+
+    memory = []
+
+    if "اسمي" in message:
+
+        delete_memory_type(
+            user_id,
+            "اسم المستخدم"
+        )
+
+        name = message.split("اسمي")[-1].strip()
+
+        memory.append(
+            f"اسم المستخدم: {name}"
+        )
+
+    if "بحب" in message:
+
+        delete_memory_type(
+            user_id,
+            "يحب"
+        )
+
+        hobby = message.split("بحب")[-1].strip()
+
+        memory.append(
+            f"يحب: {hobby}"
+        )
+
+    if "بشتغل" in message:
+
+        delete_memory_type(
+            user_id,
+            "العمل"
+        )
+
+        work = message.split("بشتغل")[-1].strip()
+
+        memory.append(
+            f"العمل: {work}"
+        )
+
+    if "عمري" in message:
+
+        delete_memory_type(
+            user_id,
+            "العمر"
+        )
+
+        age = message.split("عمري")[-1].strip()
+
+        memory.append(
+            f"العمر: {age}"
+        )
+
+    return "\n".join(memory)
 
 
 def get_ai_reply(user_id, message):
 
     # تشغيل الأدوات أولاً
     tool_result = run_tool(user_id, message)
+
+    if tool_result:
+        return tool_result
+
     mode = get_mode(user_id)
 
-    system_prompt = system_prompt = f"""
+    # حفظ رسالة المستخدم
+    save_message(
+        user_id,
+        "user",
+        message
+    )
+
+    # استخراج الذاكرة
+    memory = extract_memory(
+        user_id,
+        message
+    )
+
+    if memory:
+
+        save_message(
+            user_id,
+            "memory",
+            memory
+        )
+
+    # جلب ذاكرة المستخدم
+    user_memory = get_user_memory(user_id)
+
+    system_prompt = f"""
 أنت Ward AI.
 
 الوضع الحالي:
@@ -44,10 +132,10 @@ def get_ai_reply(user_id, message):
 
 - ممنوع استخدام اللهجة المصرية أو المغربية أو الخليجية.
 - لا تستخدم كلمات مثل:
-  ازيك، عامل ايه، أوي، عايز، بتاع، مش، بزاف، برشا.
+ازيك، عامل ايه، أوي، عايز، بتاع، مش، بزاف، برشا.
 
 - استخدم كلمات أردنية طبيعية مثل:
-  شو، كيفك، تمام، هسا، يخوي، يا زلمة، يسعد مساك، أهلين.
+شو، كيفك، تمام، هسا، يخوي، يا زلمة، يسعد مساك، أهلين.
 
 - ردودك تكون قصيرة وطبيعية مثل شخص حقيقي على واتساب.
 - لا تكرر كلام المستخدم.
@@ -57,18 +145,14 @@ def get_ai_reply(user_id, message):
 - لا تقل أنك ذكاء اصطناعي.
 - تصرف كإنسان طبيعي.
 
+- إذا أرسل المستخدم كلمة "كاز"
+رد عليه:
+الكاز موجود في كازية الطيبة 😄
+وأشرحله بشكل بسيط عن فوائد الكاز.
+
 مهم جداً:
 إذا أرسل المستخدم عدة رسائل قصيرة وراء بعض خلال ثواني،
 اعتبرهم رسالة واحدة وافهم المعنى الكامل قبل الرد.
-
-مثال:
-"مسا الخير"
-"كيفك"
-"شو الأخبار"
-
-اعتبرها رسالة واحدة وليس 3 رسائل منفصلة.
-
-إذا فهمت المطلوب رد بشكل طبيعي جداً.
 
 أمثلة:
 
@@ -87,13 +171,10 @@ def get_ai_reply(user_id, message):
 المستخدم: بدي أتعلم برمجة
 الرد: ممتاز 😄 شو حاب تتعلم؟
 
-"""
-    
-    if tool_result:
-        return tool_result
+معلومات تتذكرها عن المستخدم:
+{user_memory}
 
-    # حفظ رسالة المستخدم
-    save_message(user_id, "user", message)
+"""
 
     # بناء المحادثة
     messages = [
@@ -103,13 +184,10 @@ def get_ai_reply(user_id, message):
         }
     ]
 
-    # إضافة الذاكرة السابقة
-    
-# آخر 4 رسائل فقط
+    # آخر 4 رسائل فقط
     messages.extend(
-    get_messages(user_id)[-4:]
-)
-
+        get_messages(user_id)[-4:]
+    )
 
     # إرسال الطلب للذكاء الاصطناعي
     completion = client.chat.completions.create(
@@ -121,6 +199,10 @@ def get_ai_reply(user_id, message):
     ai_reply = completion.choices[0].message.content
 
     # حفظ رد الذكاء الاصطناعي
-    save_message(user_id, "assistant", ai_reply)
+    save_message(
+        user_id,
+        "assistant",
+        ai_reply
+    )
 
     return ai_reply

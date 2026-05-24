@@ -30,7 +30,8 @@ def get_history():
         result.append({
             "user_id": conv.user_id,
             "role": conv.role,
-            "content": conv.content
+            "content": conv.content,
+            "created_at": str(conv.created_at)
         })
 
     db.close()
@@ -50,7 +51,9 @@ def get_messages(user_id):
 
     for conv in conversations:
 
-        messages.append({
+        if conv.role != "memory":
+
+           messages.append({
             "role": conv.role,
             "content": conv.content
         })
@@ -60,6 +63,7 @@ def get_messages(user_id):
     return messages
 
 def clear_memory(user_id):
+    
 
     db = SessionLocal()
 
@@ -70,3 +74,59 @@ def clear_memory(user_id):
     db.commit()
 
     db.close()
+
+def get_user_memory(user_id):
+
+    db = SessionLocal()
+
+    memories = db.query(Conversation).filter(
+        Conversation.user_id == user_id,
+        Conversation.role == "memory"
+    ).all()
+
+    result = []
+
+    for memory in memories:
+
+        result.append(memory.content)
+
+    db.close()
+
+    return "\n".join(result)
+
+
+    db = SessionLocal()
+
+    memories = db.query(Conversation).filter(
+        Conversation.user_id == user_id,
+        Conversation.memory != ""
+    ).all()
+
+    result = []
+
+    for memory in memories:
+
+        result.append(memory.memory)
+
+    db.close()
+
+    return "\n".join(result)    
+
+def delete_memory_type(user_id, keyword):
+
+    db = SessionLocal()
+
+    memories = db.query(Conversation).filter(
+        Conversation.user_id == user_id,
+        Conversation.role == "memory"
+    ).all()
+
+    for memory in memories:
+
+        if keyword in memory.content:
+
+            db.delete(memory)
+
+    db.commit()
+
+    db.close()    

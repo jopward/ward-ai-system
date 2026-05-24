@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 
 import MainLayout from "../layout/MainLayout"
 
@@ -62,7 +62,8 @@ export default function Chats() {
     })
 
     const [selectedUser, setSelectedUser] = useState(null)
-
+    const chatEndRef = useRef(null)
+    console.log(groupedUsers)
     return (
 
         <MainLayout>
@@ -152,6 +153,12 @@ export default function Chats() {
                                     <p className="text-white">
 
                                         {msg.content}
+
+                                    </p>
+
+                                    <p className="text-xs text-zinc-300 mt-2">
+
+                                        {new Date(msg.created_at).toLocaleTimeString()}
 
                                     </p>
 

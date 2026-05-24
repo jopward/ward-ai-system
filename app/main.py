@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.core.database import engine, Base
@@ -8,6 +9,13 @@ from app.services.ai_service import get_ai_reply
 from app.services.memory_service import save_message, get_history
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 Base.metadata.create_all(bind=engine)
 
@@ -60,4 +68,16 @@ def status():
         "ai": "online",
         "users": 24
 
+    }
+
+@app.get("/memory/{user_id}")
+def memory(user_id: str):
+
+    from app.services.memory_service import (
+        get_user_memory
+    )
+
+    return {
+        "user_id": user_id,
+        "memory": get_user_memory(user_id)
     }
