@@ -50,3 +50,14 @@ def chat(message: Message):
 @app.get("/history")
 def history():
     return get_history()
+
+@app.get("/status")
+def status():
+
+    return {
+
+        "whatsapp": "connected",
+        "ai": "online",
+        "users": 24
+
+    }

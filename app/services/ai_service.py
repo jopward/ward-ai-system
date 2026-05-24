@@ -56,7 +56,12 @@ def get_ai_reply(user_id, message):
     ]
 
     # إضافة الذاكرة السابقة
-    messages.extend(get_messages(user_id))
+    
+# آخر 4 رسائل فقط
+    messages.extend(
+    get_messages(user_id)[-4:]
+)
+
 
     # إرسال الطلب للذكاء الاصطناعي
     completion = client.chat.completions.create(
