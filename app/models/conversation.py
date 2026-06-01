@@ -14,3 +14,15 @@ class Conversation(Base):
     role = Column(Text)
 
     content = Column(Text)
+
+class SystemPrompt(Base):
+
+    __tablename__ = "system_prompts"
+
+    id = Column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    content = Column(Text)

@@ -1,11 +1,33 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+
 from app.core.database import engine, Base
 from app.models.conversation import Conversation
+from app.models.driver_interest import DriverInterest
+from app.models.ride_notification import RideNotification
+
+from app.services.ride_service import (
+    create_ride,
+    detect_ride_request,
+    get_all_rides,
+    assign_driver,
+    get_ride_by_message_id,
+    cancel_driver,
+    extract_locations,
+    complete_ride,
+    get_pending_confirmation_ride,
+    confirm_ride,
+     take_ride
+)
 
 from app.services.ai_service import get_ai_reply
 from app.services.memory_service import save_message, get_history
+from app.services.keyword_service import (
+    is_driver_post,
+    extract_keywords
+
+)
 
 app = FastAPI()
 
@@ -15,7 +37,55 @@ Base.metadata.create_all(bind=engine)
 class Message(BaseModel):
     user_id: str
     text: str
+    is_wife: bool = False
 
+    group_id: str = ""
+    message_id: str = ""
+    
+
+class PromptRequest(BaseModel):
+
+    content: str    
+
+class AssignDriverRequest(BaseModel):
+
+    message_id: str
+    driver_number: str
+
+class CancelRideRequest(BaseModel):
+
+    message_id: str
+    driver_number: str    
+class CompleteRideRequest(BaseModel):
+
+    message_id: str
+    driver_number: str
+
+class DriverRequest(BaseModel):
+
+    driver_number: str
+
+class TakeRideRequest(BaseModel):
+
+    ride_id: int
+
+    driver_number: str
+
+class CustomerConfirmRequest(BaseModel):
+
+    customer_number: str
+
+class InterestRequest(BaseModel):
+
+    driver_number: str
+
+    keyword: str 
+    
+class MatchRequest(BaseModel):
+
+    pickup: str
+
+    destination: str       
 
 @app.get("/")
 def home():
@@ -39,7 +109,13 @@ def chat(message: Message):
     user_id = message.user_id
     text = message.text
 
-    ai_reply = get_ai_reply(user_id, text)
+    print("API IS_WIFE =", message.is_wife)
+
+    ai_reply = get_ai_reply(
+        user_id,
+        text,
+        message.is_wife
+    )
 
     return {
         "user_message": text,
@@ -50,3 +126,333 @@ def chat(message: Message):
 @app.get("/history")
 def history():
     return get_history()
+
+
+@app.post("/ride-test")
+def ride_test(message: Message):
+
+    if is_driver_post(
+        message.text
+    ):
+
+        return {
+            "status": "driver_post"
+        }
+
+    if detect_ride_request(
+        message.text
+    ):
+
+        pickup, destination = extract_locations(
+            message.text
+        )
+
+        keywords = extract_keywords(
+            message.text
+)
+
+        ride_id = create_ride(
+            customer_number=message.user_id,
+            message=message.text,
+            pickup=pickup,
+            destination=destination,
+            group_id=message.group_id,
+            message_id=message.message_id
+        )
+
+        return {
+            "ride_id": ride_id,
+            "status": "saved",
+            "pickup": pickup,
+            "destination": destination,
+            "keywords": keywords
+        }
+
+    return {
+        "status": "ignored"
+    }
+
+def rides():
+
+    return get_all_rides()
+
+@app.post("/assign-driver")
+def assign_driver_api(
+    data: AssignDriverRequest
+):
+
+    ride = get_ride_by_message_id(
+        data.message_id
+    )
+
+    if not ride:
+
+        return {
+            "status": "ride_not_found"
+        }
+
+    # منع الراكب من حجز طلبه
+    if ride.customer_number == data.driver_number:
+
+        return {
+            "status": "same_customer"
+        }
+
+    success = assign_driver(
+        ride.id,
+        data.driver_number
+    )
+
+    if not success:
+
+        return {
+            "status": "already_taken"
+        }
+
+    return {
+        "status": "pending_confirmation",
+
+        "ride_id": ride.id,
+
+        "customer_number":
+            ride.customer_number,
+
+        "driver_number":
+            data.driver_number,
+
+        "pickup":
+            ride.pickup,
+
+        "destination":
+            ride.destination
+    }
+
+@app.post("/cancel-driver")
+def cancel_driver_api(
+    data: CancelRideRequest
+):
+
+    ride = get_ride_by_message_id(
+        data.message_id
+    )
+
+    if not ride:
+
+        return {
+            "status": "ride_not_found"
+        }
+
+    if (
+        ride.driver_number !=
+        data.driver_number
+    ):
+
+        return {
+            "status": "not_owner"
+        }
+
+    success = cancel_driver(
+        ride.id
+    )
+
+    if not success:
+
+        return {
+            "status": "error"
+        }
+
+    return {
+        "status": "cancelled",
+        "customer_number": 
+        ride.customer_number
+    }    
+
+@app.post("/complete-ride")
+def complete_ride_api(
+    data: CompleteRideRequest
+):
+
+    ride = get_ride_by_message_id(
+        data.message_id
+    )
+
+    if not ride:
+
+        return {
+            "status": "ride_not_found"
+        }
+
+    if (
+        ride.driver_number !=
+        data.driver_number
+    ):
+
+        return {
+            "status": "not_owner"
+        }
+
+    success = complete_ride(
+        ride.id
+    )
+
+    if not success:
+
+        return {
+            "status": "error"
+        }
+
+    return {
+        "status": "completed",
+        "customer_number":
+            ride.customer_number
+    }
+
+@app.post("/my-rides")
+def my_rides(
+    data: DriverRequest
+):
+
+    from app.services.ride_service import (
+        get_driver_rides
+    )
+
+    return get_driver_rides(
+        data.driver_number
+    )
+
+@app.post("/customer-confirm")
+def customer_confirm(
+    data: CustomerConfirmRequest
+):
+
+    ride = get_pending_confirmation_ride(
+        data.customer_number
+    )
+
+    if not ride:
+
+        return {
+            "status": "ride_not_found"
+        }
+
+    confirm_ride(
+        ride.id
+    )
+
+    return {
+
+        "status":
+            "confirmed",
+
+        "customer_number":
+            ride.customer_number,
+
+        "driver_number":
+            ride.driver_number,
+
+        "pickup":
+            ride.pickup,
+
+        "destination":
+            ride.destination
+    }
+
+@app.post("/add-interest")
+def add_interest_api(
+    data: InterestRequest
+):
+
+    from app.services.driver_interest_service import (
+        add_interest
+    )
+
+    add_interest(
+        data.driver_number,
+        data.keyword
+    )
+
+    return {
+        "status": "saved"
+    }
+
+@app.post("/my-interests")
+def my_interests_api(
+    data: DriverRequest
+):
+
+    from app.services.driver_interest_service import (
+        get_driver_interests
+    )
+
+    result = []
+
+    interests = get_driver_interests(
+        data.driver_number
+    )
+
+    for item in interests:
+
+        result.append(
+            item.keyword
+        )
+
+    return result
+
+@app.post("/find-drivers")
+def find_drivers_api(
+    data: MatchRequest
+):
+
+    from app.services.driver_interest_service import (
+        find_matching_drivers
+    )
+
+    return find_matching_drivers(
+        data.pickup,
+        data.destination
+    )
+
+@app.post("/take-ride")
+def take_ride_api(
+    data: TakeRideRequest
+):
+
+    ride = take_ride(
+        data.ride_id,
+        data.driver_number
+    )
+
+    if ride is None:
+
+        return {
+            "status":
+                "ride_not_found"
+        }
+
+    if ride is False:
+
+        return {
+            "status":
+                "already_taken"
+        }
+
+    return {
+
+    "status":
+        "pending_confirmation",
+
+    "ride_id":
+        ride["id"],
+
+    "customer_number":
+        ride["customer_number"],
+
+    "driver_number":
+        ride["driver_number"],
+
+    "pickup":
+        ride["pickup"],
+
+    "destination":
+        ride["destination"]
+}

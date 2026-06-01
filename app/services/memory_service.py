@@ -1,5 +1,8 @@
 from app.core.database import SessionLocal
-from app.models.conversation import Conversation
+from app.models.conversation import (
+    Conversation,
+    SystemPrompt
+)
 
 
 def save_message(user_id, role, content):
@@ -70,3 +73,36 @@ def clear_memory(user_id):
     db.commit()
 
     db.close()
+
+def save_system_prompt(content):
+
+    db = SessionLocal()
+
+    prompt = SystemPrompt(
+        content=content
+    )
+
+    db.add(prompt)
+
+    db.commit()
+
+    db.close()
+
+
+def get_system_prompts():
+
+    db = SessionLocal()
+
+    prompts = db.query(
+        SystemPrompt
+    ).all()
+
+    result = []
+
+    for prompt in prompts:
+
+        result.append(prompt.content)
+
+    db.close()
+
+    return "\n".join(result)    
