@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, Text, DateTime, String
 from datetime import datetime
+from sqlalchemy import Boolean
 
 from app.core.database import Base
 
@@ -39,5 +40,10 @@ class Ride(Base):
     created_at = Column(
         DateTime,
         default=datetime.utcnow
+    )
+
+    published_to_drivers = Column(
+        Boolean,
+        default=False
     )
     

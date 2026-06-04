@@ -6,6 +6,9 @@ from app.core.database import engine, Base
 from app.models.conversation import Conversation
 from app.models.driver_interest import DriverInterest
 from app.models.ride_notification import RideNotification
+from app.services.location_service import (
+    extract_pickup_destination
+)
 
 from app.services.ride_service import (
     create_ride,
@@ -27,6 +30,9 @@ from app.services.keyword_service import (
     is_driver_post,
     extract_keywords
 
+)
+from app.services.post_classifier import (
+    classify_post
 )
 
 app = FastAPI()
@@ -85,7 +91,13 @@ class MatchRequest(BaseModel):
 
     pickup: str
 
-    destination: str       
+    destination: str     
+
+class RideCheckRequest(
+    BaseModel
+):
+
+    ride_id: int      
 
 @app.get("/")
 def home():
@@ -131,6 +143,23 @@ def history():
 @app.post("/ride-test")
 def ride_test(message: Message):
 
+    print("MESSAGE =", repr(message.text))
+    
+    post_type = classify_post(
+        message.text
+    )
+
+    print(
+        "POST TYPE =",
+        post_type
+    )
+
+    if post_type == "driver":
+
+        return {
+            "status": "driver_post"
+        }
+
     if is_driver_post(
         message.text
     ):
@@ -143,13 +172,17 @@ def ride_test(message: Message):
         message.text
     ):
 
-        pickup, destination = extract_locations(
-            message.text
+        pickup, destination = (
+           extract_pickup_destination(
+              message.text
+           )
+           
+                
         )
-
+        
         keywords = extract_keywords(
             message.text
-)
+        )
 
         ride_id = create_ride(
             customer_number=message.user_id,
@@ -341,21 +374,27 @@ def customer_confirm(
 
     return {
 
-        "status":
-            "confirmed",
+    "status":
+        "confirmed",
 
-        "customer_number":
-            ride.customer_number,
+    "customer_number":
+        ride.customer_number,
 
-        "driver_number":
-            ride.driver_number,
+    "driver_number":
+        ride.driver_number,
 
-        "pickup":
-            ride.pickup,
+    "pickup":
+        ride.pickup,
 
-        "destination":
-            ride.destination
-    }
+    "destination":
+        ride.destination,
+
+    "group_id":
+        ride.group_id,
+
+    "message_id":
+        ride.message_id
+      }
 
 @app.post("/add-interest")
 def add_interest_api(
@@ -456,3 +495,46 @@ def take_ride_api(
     "destination":
         ride["destination"]
 }
+
+@app.post("/check-ride")
+def check_ride(
+    data: RideCheckRequest
+):
+
+    from app.core.database import SessionLocal
+    from app.models.ride import Ride
+
+    db = SessionLocal()
+
+    try:
+
+        ride = db.query(
+            Ride
+        ).filter(
+            Ride.id == data.ride_id
+        ).first()
+
+        if not ride:
+
+            return {
+                "status": "not_found"
+            }
+
+        return {
+
+            "status":
+                ride.status,
+
+            "customer_number":
+                ride.customer_number,
+
+            "pickup":
+                ride.pickup,
+
+            "destination":
+                ride.destination
+        }
+
+    finally:
+
+        db.close()

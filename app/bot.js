@@ -2,6 +2,8 @@ const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const OWNER_NUMBER = "90688670703663@lid";
+const DRIVER_GROUP_ID =
+"120363425338510691@g.us";
 
 const client = new Client({
 
@@ -160,6 +162,17 @@ client.on('message', async (message) => {
                     response.data
                 );
                 if (
+                    response.data.status ===
+                   "driver_post"
+                ) {
+
+                   console.log(
+                  "DRIVER POST DETECTED"
+    );
+
+    return;
+}
+                if (
     response.data.status ===
     "saved"
 ) {
@@ -215,7 +228,70 @@ ${response.data.destination}
 
     }
 
+   setTimeout(
+    async () => {
 
+        try {
+
+            const check =
+                await axios.post(
+                    "http://127.0.0.1:8001/check-ride",
+                    {
+                        ride_id:
+                            response.data.ride_id
+                    }
+                );
+                const ride =
+                    check.data;
+
+            console.log(
+                "RIDE CHECK =",
+                check.data
+            );
+
+            if (
+                check.data.status ===
+                "NEW"
+            ) {
+
+               await client.sendMessage(
+    DRIVER_GROUP_ID,
+
+`🚖 رحلة جديدة
+
+من:
+${ride.pickup}
+
+إلى:
+${ride.destination}
+
+للحجز اكتب:
+
+#take ${response.data.ride_id}`
+);
+
+console.log(
+    "PUBLISHED TO DRIVER GROUP"
+);
+await client.sendMessage(
+    ride.customer_number,
+    "⏳ ما زلنا نبحث عن سائق مناسب لرحلتك"
+);
+
+            }
+
+        } catch (e) {
+
+            console.log(
+                "CHECK ERROR",
+                e.message
+            );
+
+        }
+
+    },
+    300000
+);
 
 }
 
@@ -344,7 +420,16 @@ if (
 ${customerNumber}
 
 يرجى التواصل معه`
-            );
+            );await client.sendMessage(
+    response.data.group_id,
+
+`✅ تم تأمين الرحلة
+
+المسار:
+${response.data.pickup}
+⬇
+${response.data.destination}`
+);
 
             await client.sendMessage(
                 userId,

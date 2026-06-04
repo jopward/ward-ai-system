@@ -219,7 +219,8 @@ def extract_locations(message):
         message,
         re.IGNORECASE
     )
-
+    print("MATCH =", match)
+    
     if match:
 
         pickup = match.group(1).strip()
@@ -361,9 +362,11 @@ def take_ride(
         ride.status = (
             "PENDING_CONFIRMATION"
         )
+        
         ride.confirmation_status = (
              "PENDING_CONFIRMATION"
         )
+        ride.published_to_drivers = True
         db.commit()
 
         result = {
