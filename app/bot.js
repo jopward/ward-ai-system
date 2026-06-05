@@ -39,6 +39,7 @@ client.on('ready', () => {
     console.log('✅ WhatsApp AI Ready!');
 
 });
+const pendingConfirmations = {};
 
 const userBuffers = {};
 
@@ -384,6 +385,9 @@ const rejectWords = [
 ];
 
 
+ 
+
+  
 if (
     rejectWords.includes(
         message.body.trim().toLowerCase()
@@ -396,57 +400,22 @@ if (
     const realNumber =
         contact.id._serialized;
 
-    try {
+    if (
+        pendingConfirmations[
+            realNumber
+        ]
+    ) {
 
-        const response =
-            await axios.post(
-                "http://127.0.0.1:8001/customer-reject",
-                {
-                    customer_number:
-                        realNumber
-                }
-            );
-
-        if (
-            response.data.status ===
-            "rejected"
-        ) {
-
-            await client.sendMessage(
-                response.data.driver_number,
-                "❌ الراكب رفض الرحلة"
-            );
-
-            await client.sendMessage(
-                userId,
-                "تم إلغاء الحجز"
-            );
-
-        }
-
-    } catch (e) {
-
-        console.log(
-            "REJECT ERROR",
-            e.message
+        clearTimeout(
+            pendingConfirmations[
+                realNumber
+            ]
         );
 
+        delete pendingConfirmations[
+            realNumber
+        ];
     }
-
-    return;
-}
-
-if (
-    rejectWords.includes(
-        message.body.trim().toLowerCase()
-    )
-) {
-
-    const contact =
-        await message.getContact();
-
-    const realNumber =
-        contact.id._serialized;
 
     try {
 
@@ -502,6 +471,23 @@ if (
 
     const realNumber =
         contact.id._serialized;
+
+    if (
+    pendingConfirmations[
+        realNumber
+    ]
+) {
+
+    clearTimeout(
+        pendingConfirmations[
+            realNumber
+        ]
+    );
+
+    delete pendingConfirmations[
+        realNumber
+    ];
+}    
 
     console.log(
         "CUSTOMER CONFIRM DETECTED",
@@ -805,6 +791,46 @@ ${response.data.destination}
 
                 "⏳ بانتظار موافقة الراكب"
             );
+            pendingConfirmations[
+    response.data.customer_number
+] = setTimeout(
+    async () => {
+
+        try {
+
+            await client.sendMessage(
+                response.data.customer_number,
+
+`⌛ انتهت مهلة تأكيد الرحلة
+
+إذا كنت ما زلت بحاجة إلى مشوار،
+أرسل طلباً جديداً`
+            );
+
+            await client.sendMessage(
+                response.data.driver_number,
+
+`⌛ لم يرد الراكب خلال المهلة
+
+تم إلغاء الحجز المبدئي`
+            );
+
+        } catch (e) {
+
+            console.log(
+                "TIMEOUT ERROR",
+                e.message
+            );
+
+        }
+
+        delete pendingConfirmations[
+            response.data.customer_number
+        ];
+
+    },
+    180000
+);
 
         }
 
