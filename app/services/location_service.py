@@ -45,8 +45,25 @@ def find_locations(text):
             matches.append(place)
 
     return matches
-
 def extract_pickup_destination(text):
+
+    text = normalize(text)
+
+    match = re.search(
+        r"من\s+(.*?)\s+(?:الى|الي)\s+(.*)",
+        text,
+        re.IGNORECASE
+    )
+
+    if match:
+
+        pickup = match.group(1).strip()
+        destination = match.group(2).strip()
+
+        return (
+            pickup,
+            destination
+        )
 
     matches = find_locations(text)
 
@@ -67,4 +84,4 @@ def extract_pickup_destination(text):
     return (
         "unknown",
         "unknown"
-    )    
+    )

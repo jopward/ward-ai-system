@@ -136,12 +136,20 @@ client.on('message', async (message) => {
 
             try {
 
+                const contact =
+    await message.getContact();
+
+console.log(
+    "GROUP CONTACT =",
+    contact
+);
+
                 const response =
                     await axios.post(
                         "http://127.0.0.1:8001/ride-test",
                         {
                             user_id:
-                                message.author || "",
+                                contact.id.user + "@c.us",
 
                             text:
                                 message.body,
@@ -368,6 +376,117 @@ const confirmWords = [
     "ok",
     "موافق"
 ];
+const rejectWords = [
+    "لا",
+    "لأ",
+    "no",
+    "رفض"
+];
+
+
+if (
+    rejectWords.includes(
+        message.body.trim().toLowerCase()
+    )
+) {
+
+    const contact =
+        await message.getContact();
+
+    const realNumber =
+        contact.id._serialized;
+
+    try {
+
+        const response =
+            await axios.post(
+                "http://127.0.0.1:8001/customer-reject",
+                {
+                    customer_number:
+                        realNumber
+                }
+            );
+
+        if (
+            response.data.status ===
+            "rejected"
+        ) {
+
+            await client.sendMessage(
+                response.data.driver_number,
+                "❌ الراكب رفض الرحلة"
+            );
+
+            await client.sendMessage(
+                userId,
+                "تم إلغاء الحجز"
+            );
+
+        }
+
+    } catch (e) {
+
+        console.log(
+            "REJECT ERROR",
+            e.message
+        );
+
+    }
+
+    return;
+}
+
+if (
+    rejectWords.includes(
+        message.body.trim().toLowerCase()
+    )
+) {
+
+    const contact =
+        await message.getContact();
+
+    const realNumber =
+        contact.id._serialized;
+
+    try {
+
+        const response =
+            await axios.post(
+                "http://127.0.0.1:8001/customer-reject",
+                {
+                    customer_number:
+                        realNumber
+                }
+            );
+
+        if (
+            response.data.status ===
+            "rejected"
+        ) {
+
+            await client.sendMessage(
+                response.data.driver_number,
+                "❌ الراكب رفض الرحلة"
+            );
+
+            await client.sendMessage(
+                userId,
+                "تم إلغاء الحجز"
+            );
+
+        }
+
+    } catch (e) {
+
+        console.log(
+            "REJECT ERROR",
+            e.message
+        );
+
+    }
+
+    return;
+}
 console.log(
     "MESSAGE BODY =",
     message.body
@@ -376,10 +495,18 @@ if (
     confirmWords.includes(
         message.body.trim().toLowerCase()
     )
-) {console.log(
-    "CUSTOMER CONFIRM DETECTED",
-    userId
-);
+) {
+
+    const contact =
+        await message.getContact();
+
+    const realNumber =
+        contact.id._serialized;
+
+    console.log(
+        "CUSTOMER CONFIRM DETECTED",
+        realNumber
+    );
 
     try {
 
@@ -388,13 +515,16 @@ if (
                 "http://127.0.0.1:8001/customer-confirm",
                 {
                     customer_number:
-                        userId
+                        realNumber
                 }
-            );console.log(
-    "CONFIRM RESPONSE =",
-    response.data
-);
+            );
 
+        console.log(
+            "CONFIRM RESPONSE =",
+            response.data
+        );
+
+        // باقي الكود كما هو...
         if (
             response.data.status ===
             "confirmed"
@@ -420,8 +550,39 @@ if (
 ${customerNumber}
 
 يرجى التواصل معه`
-            );await client.sendMessage(
-    response.data.group_id,
+            );
+            const chat =
+    await client.getChatById(
+        response.data.group_id
+    );
+
+const messages =
+    await chat.fetchMessages({
+        limit: 100
+    });
+
+const originalMessage =
+    messages.find(
+        m =>
+            m.id._serialized ===
+            response.data.message_id
+    );
+
+if (originalMessage) {
+
+    await originalMessage.reply(
+`✅ تم تأمين الرحلة
+
+المسار:
+${response.data.pickup}
+⬇
+${response.data.destination}`
+    );
+
+} else {
+
+    await client.sendMessage(
+        response.data.group_id,
 
 `✅ تم تأمين الرحلة
 
@@ -429,7 +590,9 @@ ${customerNumber}
 ${response.data.pickup}
 ⬇
 ${response.data.destination}`
-);
+    );
+
+}
 
             await client.sendMessage(
                 userId,
@@ -571,7 +734,18 @@ if (
             )
             .trim();
 
+    const contact =
+    await message.getContact();
+
+console.log(contact);        
+
     try {
+
+        const contact =
+    await message.getContact();
+
+const realNumber =
+    contact.id._serialized;
 
         const response =
             await axios.post(
@@ -581,9 +755,22 @@ if (
                         Number(rideId),
 
                     driver_number:
-                        userId
+                         realNumber
                 }
             );
+
+            if (
+    response.data.status ===
+    "already_taken"
+) {
+
+    await client.sendMessage(
+        userId,
+        "❌ هذه الرحلة تم حجزها بالفعل بواسطة سائق آخر"
+    );
+
+    return;
+}
 
         if (
             response.data.status ===

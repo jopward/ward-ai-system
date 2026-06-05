@@ -12,31 +12,6 @@ def classify_post(text):
     )
 
     print("AFTER STRIP =", repr(text))
-
-    driver_patterns = [
-
-        "بحاجه راكب",
-        "بحاجه راكبين",
-        "بحاجه الى راكب",
-        "بحاجه الى راكبين",
-        "راكبين",
-        "مقاعد",
-        "مقعدين",
-        "متوفر مقعد",
-        "متوفر مقعدين",
-        "تحميل",
-        "سياره من",
-        "سياره الخميس",
-        "سياره الان",
-        "سياره غدا"
-    ]
-
-    for pattern in driver_patterns:
-
-        if pattern in text:
-
-            return "driver"
-
     passenger_patterns = [
 
         "بحاجه سياره",
@@ -59,12 +34,34 @@ def classify_post(text):
 
             return "passenger"
 
-    if text.startswith("راكب"):
 
-        return "passenger"
+    driver_patterns = [
 
+        "بحاجه راكب",
+        "بحاجه راكبين",
+        "بحاجه الى راكب",
+        "بحاجه الى راكبين",
+        "راكبين",
+        "مقاعد",
+        "مقعدين",
+        "متوفر مقعد",
+        "متوفر مقعدين",
+        "تحميل",
+        "سياره الخميس",
+        "سياره الان",
+        "سياره غدا"
+    ]
+
+    for pattern in driver_patterns:
+
+        if pattern in text:
+
+            return "driver"
+            
     if text.startswith("سياره"):
 
         return "driver"
 
     return "unknown"
+
+ 

@@ -392,3 +392,58 @@ def take_ride(
     finally:
 
         db.close()
+
+def reject_ride(
+    customer_number
+):
+
+    db = SessionLocal()
+
+    try:
+
+        ride = db.query(
+            Ride
+        ).filter(
+            Ride.customer_number ==
+            customer_number,
+
+            Ride.confirmation_status ==
+            "PENDING_CONFIRMATION"
+        ).order_by(
+            Ride.id.desc()
+        ).first()
+
+        if not ride:
+
+            return None
+
+        driver_number = (
+            ride.driver_number
+        )
+
+        ride.driver_number = ""
+        ride.status = "NEW"
+
+        ride.confirmation_status = (
+            "REJECTED"
+        )
+
+        db.commit()
+
+        return {
+            "driver_number":
+                driver_number,
+
+            "ride_id":
+                ride.id,
+
+            "pickup":
+                ride.pickup,
+
+            "destination":
+                ride.destination
+        }
+
+    finally:
+
+        db.close()        

@@ -35,6 +35,10 @@ from app.services.post_classifier import (
     classify_post
 )
 
+from app.services.ride_service import (
+    reject_ride
+)
+
 app = FastAPI()
 
 Base.metadata.create_all(bind=engine)
@@ -98,6 +102,13 @@ class RideCheckRequest(
 ):
 
     ride_id: int      
+
+class CustomerRejectRequest(
+    BaseModel
+):
+
+    customer_number: str
+
 
 @app.get("/")
 def home():
@@ -498,6 +509,7 @@ def take_ride_api(
 
 @app.post("/check-ride")
 def check_ride(
+
     data: RideCheckRequest
 ):
 
@@ -538,3 +550,37 @@ def check_ride(
     finally:
 
         db.close()
+
+@app.post("/customer-reject")
+def customer_reject(
+    data: CustomerRejectRequest
+):
+
+    result = reject_ride(
+        data.customer_number
+    )
+
+    if not result:
+
+        return {
+            "status":
+                "ride_not_found"
+        }
+
+    return {
+
+        "status":
+            "rejected",
+
+        "driver_number":
+            result["driver_number"],
+
+        "ride_id":
+            result["ride_id"],
+
+        "pickup":
+            result["pickup"],
+
+        "destination":
+            result["destination"]
+    }        
