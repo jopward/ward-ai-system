@@ -289,6 +289,11 @@ def get_pending_confirmation_ride(
 
     try:
 
+        print(
+            "SEARCH PENDING FOR =",
+            customer_number
+        )
+
         ride = db.query(Ride).filter(
             Ride.customer_number ==
             customer_number,
@@ -299,12 +304,28 @@ def get_pending_confirmation_ride(
             Ride.id.desc()
         ).first()
 
+        print(
+            "PENDING RIDE =",
+            ride
+        )
+
+        if ride:
+
+            print(
+                "STATUS =",
+                ride.status
+            )
+
+            print(
+                "CONFIRMATION =",
+                ride.confirmation_status
+            )
+
         return ride
 
     finally:
 
         db.close()
-
 
 def confirm_ride(
     ride_id
@@ -314,15 +335,28 @@ def confirm_ride(
 
     try:
 
-        ride = db.query(Ride).filter(
+        ride = db.query(
+            Ride
+        ).filter(
             Ride.id == ride_id
         ).first()
 
         if not ride:
+
+            return False
+
+        if (
+            ride.confirmation_status
+            != "PENDING_CONFIRMATION"
+        ):
+
             return False
 
         ride.status = "TAKEN"
-        ride.confirmation_status = "CONFIRMED"
+
+        ride.confirmation_status = (
+            "CONFIRMED"
+        )
 
         db.commit()
 
@@ -331,6 +365,44 @@ def confirm_ride(
     finally:
 
         db.close()
+
+def expire_ride(
+    customer_number
+):
+
+    db = SessionLocal()
+
+    try:
+
+        ride = db.query(
+            Ride
+        ).filter(
+            Ride.customer_number ==
+            customer_number,
+
+            Ride.confirmation_status ==
+            "PENDING_CONFIRMATION"
+        ).order_by(
+            Ride.id.desc()
+        ).first()
+
+        if not ride:
+
+            return False
+
+        ride.status = "EXPIRED"
+
+        ride.confirmation_status = (
+            "EXPIRED"
+        )
+
+        db.commit()
+
+        return True
+
+    finally:
+
+        db.close()        
 
 def take_ride(
     ride_id,
@@ -447,3 +519,110 @@ def reject_ride(
     finally:
 
         db.close()        
+def search_new_driver_for_customer(
+    customer_number
+):
+
+    db = SessionLocal()
+
+    try:
+
+        ride = db.query(
+            Ride
+        ).filter(
+            Ride.customer_number ==
+            customer_number
+        ).order_by(
+            Ride.id.desc()
+        ).first()
+
+        if not ride:
+
+            return None
+
+        old_driver = (
+            ride.driver_number
+        )
+
+        ride.driver_number = ""
+
+        ride.status = "NEW"
+
+        ride.confirmation_status = "NEW"
+
+        db.commit()
+
+        return {
+
+            "status":
+                "search_again",
+
+            "ride_id":
+                ride.id,
+
+            "pickup":
+                ride.pickup,
+
+            "destination":
+                ride.destination,
+
+            "customer_number":
+                ride.customer_number,
+
+            "old_driver":
+                old_driver
+        }
+
+    finally:
+
+        db.close()
+def cancel_customer_ride(
+    customer_number
+):
+
+    db = SessionLocal()
+
+    try:
+
+        ride = db.query(
+            Ride
+        ).filter(
+            Ride.customer_number ==
+            customer_number,
+
+            Ride.confirmation_status ==
+            "PENDING_CONFIRMATION"
+        ).order_by(
+            Ride.id.desc()
+        ).first()
+
+        if not ride:
+
+            return None
+
+        driver_number = (
+            ride.driver_number
+        )
+
+        ride.status = "CANCELLED"
+
+        ride.confirmation_status = (
+            "CANCELLED"
+        )
+
+        ride.driver_number = ""
+
+        db.commit()
+
+        return {
+
+            "driver_number":
+                driver_number,
+
+            "ride_id":
+                ride.id
+        }
+
+    finally:
+
+        db.close()

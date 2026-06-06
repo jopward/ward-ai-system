@@ -1,25 +1,33 @@
 from app.core.database import SessionLocal
-from app.models.ride import Ride
+from app.models.ride_notification import (
+    RideNotification
+)
 
 
-def get_unpublished_rides():
+def save_notification(
+    ride_id,
+    driver_number
+):
 
     db = SessionLocal()
 
     try:
 
-        return db.query(
-            Ride
-        ).filter(
-            Ride.status == "NEW",
-            Ride.published_to_drivers == False
-        ).all()
+        item = RideNotification(
+            ride_id=ride_id,
+            driver_number=driver_number
+        )
+
+        db.add(item)
+
+        db.commit()
 
     finally:
 
         db.close()
 
-def mark_as_published(
+
+def get_notified_drivers(
     ride_id
 ):
 
@@ -27,17 +35,22 @@ def mark_as_published(
 
     try:
 
-        ride = db.query(
-            Ride
+        rows = db.query(
+            RideNotification
         ).filter(
-            Ride.id == ride_id
-        ).first()
+            RideNotification.ride_id
+            == ride_id
+        ).all()
 
-        if ride:
+        result = []
 
-            ride.published_to_drivers = True
+        for row in rows:
 
-            db.commit()
+            result.append(
+                row.driver_number
+            )
+
+        return result
 
     finally:
 

@@ -5,6 +5,8 @@ const OWNER_NUMBER = "90688670703663@lid";
 const DRIVER_GROUP_ID =
 "120363425338510691@g.us";
 
+const pendingRejectTimers = {};
+
 const client = new Client({
 
     authStrategy: new LocalAuth(),
@@ -40,6 +42,22 @@ client.on('ready', () => {
 
 });
 const pendingConfirmations = {};
+const pendingRejectChoice = {};
+const confirmWords = [
+    "نعم",
+    "اه",
+    "أه",
+    "ايوه",
+    "yes",
+    "ok",
+    "موافق"
+];
+const rejectWords = [
+    "لا",
+    "لأ",
+    "no",
+    "رفض"
+];
 
 const userBuffers = {};
 
@@ -202,6 +220,7 @@ console.log(
         "MATCHING DRIVERS =",
         drivers.data
     );
+    
 
     for (
         const driver
@@ -224,7 +243,16 @@ ${response.data.destination}
 للحجز اكتب:
 
 #take ${response.data.ride_id}`
-            );
+            );await axios.post(
+    "http://127.0.0.1:8001/save-ride-notification",
+    {
+        ride_id:
+            response.data.ride_id,
+
+        driver_number:
+            driver
+    }
+);
 
         } catch (e) {
 
@@ -254,9 +282,9 @@ ${response.data.destination}
                     check.data;
 
             console.log(
-                "RIDE CHECK =",
-                check.data
-            );
+    "5 MIN CHECK =",
+    JSON.stringify(check.data)
+);
 
             if (
                 check.data.status ===
@@ -368,21 +396,7 @@ ${ride.status}
 
     return;
 }
-const confirmWords = [
-    "نعم",
-    "اه",
-    "أه",
-    "ايوه",
-    "yes",
-    "ok",
-    "موافق"
-];
-const rejectWords = [
-    "لا",
-    "لأ",
-    "no",
-    "رفض"
-];
+
 
 
  
@@ -399,6 +413,28 @@ if (
 
     const realNumber =
         contact.id._serialized;
+        const check =
+    await axios.post(
+        "http://127.0.0.1:8001/check-pending-confirmation",
+        {
+            customer_number:
+                realNumber
+        }
+    );
+
+if (
+    check.data.status ===
+    "ride_not_found"
+) {
+
+    await client.sendMessage(
+        userId,
+        "❌ لا يوجد طلب بانتظار الموافقة"
+    );
+
+    return;
+}
+  
 
     if (
         pendingConfirmations[
@@ -417,42 +453,322 @@ if (
         ];
     }
 
-    try {
+ pendingRejectChoice[
+    userId
+] = true;
 
-        const response =
-            await axios.post(
-                "http://127.0.0.1:8001/customer-reject",
-                {
-                    customer_number:
-                        realNumber
-                }
-            );
+if (
+    pendingRejectTimers[userId]
+) {
 
-        if (
-            response.data.status ===
-            "rejected"
-        ) {
+    clearTimeout(
+        pendingRejectTimers[userId]
+    );
+}
 
-            await client.sendMessage(
-                response.data.driver_number,
-                "❌ الراكب رفض الرحلة"
-            );
+pendingRejectTimers[
+    userId
+] = setTimeout(
+    async () => {
+
+        try {
+
+            const contact =
+                await message.getContact();
+
+            const realNumber =
+                contact.id._serialized;
+
+            const cancelResponse =
+                await axios.post(
+                    "http://127.0.0.1:8001/cancel-customer-ride",
+                    {
+                        customer_number:
+                            realNumber
+                    }
+                );
+
+            if (
+                cancelResponse.data
+                    .driver_number
+            ) {
+
+                await client.sendMessage(
+                    cancelResponse.data
+                        .driver_number,
+
+`❌ لم يرد الراكب خلال المهلة
+
+تم إلغاء الحجز المبدئي`
+                );
+
+            }
 
             await client.sendMessage(
                 userId,
-                "تم إلغاء الحجز"
+
+`⌛ انتهت مهلة الاختيار
+
+تم إلغاء الرحلة تلقائياً`
+            );
+
+            delete pendingRejectChoice[
+                userId
+            ];
+
+            delete pendingRejectTimers[
+                userId
+            ];
+
+        } catch (e) {
+
+            console.log(
+                "REJECT TIMEOUT ERROR",
+                e.message
             );
 
         }
 
-    } catch (e) {
+    },
+    60000
+);
 
-        console.log(
-            "REJECT ERROR",
-            e.message
+await client.sendMessage(
+    userId,
+
+`❓ هل تريد:
+
+1️⃣ إلغاء الرحلة
+
+2️⃣ البحث عن سائق آخر
+
+⏳ لديك دقيقة واحدة للاختيار
+
+اكتب:
+1 أو 2`
+);
+
+return;
+}
+if (
+    pendingRejectChoice[
+        userId
+    ]
+) {
+
+   if (
+    message.body.trim() === "1"
+) {
+
+    const contact =
+        await message.getContact();
+
+    const realNumber =
+        contact.id._serialized;
+if (
+    pendingRejectTimers[userId]
+) {
+
+    clearTimeout(
+        pendingRejectTimers[userId]
+    );
+
+    delete pendingRejectTimers[
+        userId
+    ];
+}
+    delete pendingRejectChoice[
+        userId
+    ];
+
+    const cancelResponse =
+    await axios.post(
+        "http://127.0.0.1:8001/cancel-customer-ride",
+        {
+            customer_number:
+                realNumber
+        }
+    );
+
+if (
+    cancelResponse.data.driver_number
+) {
+
+    await client.sendMessage(
+        cancelResponse.data.driver_number,
+
+`❌ تم إلغاء الرحلة من قبل الراكب`
+    );
+
+}
+
+await client.sendMessage(
+    userId,
+    "✅ تم إلغاء الرحلة نهائياً"
+);
+
+    return;
+}
+
+   if (
+    message.body.trim() === "2"
+) {
+    if (
+    pendingRejectTimers[userId]
+) {
+
+    clearTimeout(
+        pendingRejectTimers[userId]
+    );
+
+    delete pendingRejectTimers[
+        userId
+    ];
+}
+
+    console.log(
+        "OPTION 2 STARTED"
+    );
+
+    delete pendingRejectChoice[
+        userId
+    ];
+    delete pendingRejectTimers[
+    userId
+];
+
+    const contact =
+        await message.getContact();
+
+    const realNumber =
+        contact.id._serialized;
+
+    const response =
+        await axios.post(
+            "http://127.0.0.1:8001/search-new-driver",
+            {
+                customer_number:
+                    realNumber
+            }
         );
 
+    console.log(
+        "SEARCH RESPONSE =",
+        response.data
+    );
+
+    await client.sendMessage(
+        userId,
+        "🔍 جاري البحث عن سائق آخر..."
+    );
+
+    const drivers =
+        await axios.post(
+            "http://127.0.0.1:8001/find-drivers",
+            {
+                pickup:
+                    response.data.pickup,
+
+                destination:
+                    response.data.destination
+            }
+        );
+
+        const notified =
+    await axios.post(
+        "http://127.0.0.1:8001/notified-drivers",
+        {
+            ride_id:
+                response.data.ride_id
+        }
+    );
+
+console.log(
+    "NOTIFIED DRIVERS =",
+    notified.data
+);
+
+   console.log(
+    "FOUND DRIVERS =",
+    drivers.data
+);
+
+let sentCount = 0;
+for (
+    const driver
+    of drivers.data
+) {
+
+    if (
+        driver ===
+        response.data.old_driver
+    ) {
+
+        console.log(
+            "SKIP OLD DRIVER"
+        );
+
+        continue;
     }
+    if (
+    notified.data.includes(
+        driver
+    )
+) {
+
+    console.log(
+        "ALREADY NOTIFIED =",
+        driver
+    );
+
+    continue;
+}
+
+    console.log(
+        "SENDING TO DRIVER =",
+        driver
+    );
+
+    await client.sendMessage(
+        driver,
+        `🚖 طلب #${response.data.ride_id}
+
+من:
+${response.data.pickup}
+
+إلى:
+${response.data.destination}
+
+للحجز اكتب:
+
+#take ${response.data.ride_id}`
+    );await axios.post(
+    "http://127.0.0.1:8001/save-ride-notification",
+    {
+        ride_id:
+            response.data.ride_id,
+
+        driver_number:
+            driver
+    }
+);sentCount++;
+}
+if (
+    sentCount === 0
+) {
+
+    await client.sendMessage(
+        userId,
+        "❌ لا يوجد حالياً سائق آخر متاح لهذا المسار"
+    );
+}
+return;
+}
+
+    await client.sendMessage(
+        userId,
+        "اكتب 1 أو 2 فقط"
+    );
 
     return;
 }
@@ -720,10 +1036,8 @@ if (
             )
             .trim();
 
-    const contact =
-    await message.getContact();
-
-console.log(contact);        
+   
+      
 
     try {
 
@@ -797,6 +1111,14 @@ ${response.data.destination}
     async () => {
 
         try {
+
+            await axios.post(
+    "http://127.0.0.1:8001/expire-ride",
+    {
+        customer_number:
+            response.data.customer_number
+    }
+);
 
             await client.sendMessage(
                 response.data.customer_number,

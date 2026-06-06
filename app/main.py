@@ -109,6 +109,19 @@ class CustomerRejectRequest(
 
     customer_number: str
 
+class ExpireRideRequest(
+    BaseModel
+):
+
+    customer_number: str    
+
+
+class SearchNewDriverRequest(
+    BaseModel
+):
+
+    customer_number: str
+
 
 @app.get("/")
 def home():
@@ -376,36 +389,44 @@ def customer_confirm(
     if not ride:
 
         return {
-            "status": "ride_not_found"
+            "status":
+                "confirmation_expired"
         }
 
-    confirm_ride(
+    success = confirm_ride(
         ride.id
     )
 
+    if not success:
+
+        return {
+            "status":
+                "confirmation_expired"
+        }
+
     return {
 
-    "status":
-        "confirmed",
+        "status":
+            "confirmed",
 
-    "customer_number":
-        ride.customer_number,
+        "customer_number":
+            ride.customer_number,
 
-    "driver_number":
-        ride.driver_number,
+        "driver_number":
+            ride.driver_number,
 
-    "pickup":
-        ride.pickup,
+        "pickup":
+            ride.pickup,
 
-    "destination":
-        ride.destination,
+        "destination":
+            ride.destination,
 
-    "group_id":
-        ride.group_id,
+        "group_id":
+            ride.group_id,
 
-    "message_id":
-        ride.message_id
-      }
+        "message_id":
+            ride.message_id
+    }
 
 @app.post("/add-interest")
 def add_interest_api(
@@ -584,3 +605,158 @@ def customer_reject(
         "destination":
             result["destination"]
     }        
+
+
+@app.post("/search-new-driver")
+def search_new_driver(
+    data: SearchNewDriverRequest
+):
+
+    from app.services.ride_service import (
+        search_new_driver_for_customer
+    )
+
+    result = search_new_driver_for_customer(
+        data.customer_number
+    )
+
+    if not result:
+
+        return {
+            "status":
+                "ride_not_found"
+        }
+
+    return result   
+
+@app.post("/cancel-customer-ride")
+def cancel_customer_ride_api(
+    data: CustomerRejectRequest
+):
+
+    from app.services.ride_service import (
+        cancel_customer_ride
+    )
+
+    result = cancel_customer_ride(
+        data.customer_number
+    )
+
+    if not result:
+
+        return {
+            "status":
+                "ride_not_found"
+        }
+
+    return {
+
+        "status":
+            "cancelled",
+
+        "driver_number":
+            result["driver_number"],
+
+        "ride_id":
+            result["ride_id"]
+    }
+
+
+@app.post("/expire-ride")
+def expire_ride_api(
+    data: ExpireRideRequest
+):
+
+    from app.services.ride_service import (
+        expire_ride
+    )
+
+    success = expire_ride(
+        data.customer_number
+    )
+
+    if not success:
+
+        return {
+            "status":
+                "ride_not_found"
+        }
+
+    return {
+        "status":
+            "expired"
+    }
+
+class SaveNotificationRequest(
+    BaseModel
+):
+
+    ride_id: int
+
+    driver_number: str
+
+
+class NotifiedDriversRequest(
+    BaseModel
+):
+
+    ride_id: int
+
+
+@app.post(
+    "/save-ride-notification"
+)
+def save_ride_notification(
+    data: SaveNotificationRequest
+):
+
+    from app.services.ride_notification_service import (
+        save_notification
+    )
+
+    save_notification(
+        data.ride_id,
+        data.driver_number
+    )
+
+    return {
+        "status": "saved"
+    }
+
+
+@app.post(
+    "/notified-drivers"
+)
+def notified_drivers(
+    data: NotifiedDriversRequest
+):
+
+    from app.services.ride_notification_service import (
+        get_notified_drivers
+    )
+
+    return get_notified_drivers(
+        data.ride_id
+    )
+@app.post(
+    "/check-pending-confirmation"
+)
+def check_pending_confirmation(
+    data: CustomerConfirmRequest
+):
+
+    ride = get_pending_confirmation_ride(
+        data.customer_number
+    )
+
+    if not ride:
+
+        return {
+            "status":
+                "ride_not_found"
+        }
+
+    return {
+        "status":
+            "found"
+    }
