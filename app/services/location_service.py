@@ -50,7 +50,7 @@ def extract_pickup_destination(text):
     text = normalize(text)
 
     match = re.search(
-        r"من\s+(.*?)\s+(?:الى|الي)\s+(.*)",
+        r"من\s+(.*?)\s+(?:الى|الي|ل)\s+(.*)",
         text,
         re.IGNORECASE
     )
@@ -60,6 +60,11 @@ def extract_pickup_destination(text):
         pickup = match.group(1).strip()
         destination = match.group(2).strip()
 
+        destination = re.split(
+            r"\s+(?:الان|اليوم|غدا|بكره|بحاجه|بحاجة|راكب|ركاب)",
+            destination
+        )[0].strip()
+
         return (
             pickup,
             destination
@@ -67,17 +72,27 @@ def extract_pickup_destination(text):
 
     matches = find_locations(text)
 
-    if len(matches) >= 2:
+    unique_places = []
+
+    for place in matches:
+
+        if place["name"] not in unique_places:
+
+            unique_places.append(
+                place["name"]
+            )
+
+    if len(unique_places) >= 2:
 
         return (
-            matches[0]["name"],
-            matches[1]["name"]
+            unique_places[0],
+            unique_places[-1]
         )
 
-    if len(matches) == 1:
+    if len(unique_places) == 1:
 
         return (
-            matches[0]["name"],
+            unique_places[0],
             "unknown"
         )
 

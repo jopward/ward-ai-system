@@ -1,5 +1,6 @@
 from app.core.database import SessionLocal
 from app.models.ride import Ride
+from datetime import datetime, timedelta
 import re
 
 
@@ -41,11 +42,14 @@ def create_ride(
 def detect_ride_request(message):
 
     ride_words = [
-        "راكب من",
-        "بدي سيارة من",
-        "بدي تكسي من",
-        "توصيلة من",
-        "من "
+       "راكب",
+       "راكبه",
+        "ركاب",
+        "من ",
+        "بدي سيارة",
+        "بدي تكسي",
+        "توصيلة",
+        "مشوار"
     ]
 
     message = message.lower()
@@ -423,6 +427,19 @@ def take_ride(
 
             return None
 
+        if (
+            ride.created_at
+            and
+            datetime.utcnow() - ride.created_at >
+            timedelta(minutes=90)
+        ):
+
+            ride.status = "EXPIRED"
+
+            db.commit()
+
+            return "expired"
+
         if ride.status != "NEW":
 
             return False
@@ -434,11 +451,13 @@ def take_ride(
         ride.status = (
             "PENDING_CONFIRMATION"
         )
-        
+
         ride.confirmation_status = (
-             "PENDING_CONFIRMATION"
+            "PENDING_CONFIRMATION"
         )
+
         ride.published_to_drivers = True
+
         db.commit()
 
         result = {
@@ -464,7 +483,7 @@ def take_ride(
     finally:
 
         db.close()
-
+        
 def reject_ride(
     customer_number
 ):

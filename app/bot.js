@@ -232,18 +232,7 @@ console.log(
             await client.sendMessage(
                 driver,
 
-`🚖 طلب #${response.data.ride_id}
-
-من:
-${response.data.pickup}
-
-إلى:
-${response.data.destination}
-
-للحجز اكتب:
-
-#take ${response.data.ride_id}`
-            );await axios.post(
+`🚖 #take ${response.data.ride_id} | ${response.data.pickup} ← ${response.data.destination}` );await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
         ride_id:
@@ -294,26 +283,13 @@ ${response.data.destination}
                await client.sendMessage(
     DRIVER_GROUP_ID,
 
-`🚖 رحلة جديدة
-
-من:
-${ride.pickup}
-
-إلى:
-${ride.destination}
-
-للحجز اكتب:
-
-#take ${response.data.ride_id}`
+`🚖 #take ${response.data.ride_id} | ${ride.pickup} ← ${ride.destination}`
 );
 
 console.log(
     "PUBLISHED TO DRIVER GROUP"
 );
-await client.sendMessage(
-    ride.customer_number,
-    "⏳ ما زلنا نبحث عن سائق مناسب لرحلتك"
-);
+
 
             }
 
@@ -498,7 +474,6 @@ pendingRejectTimers[
                         .driver_number,
 
 `❌ لم يرد الراكب خلال المهلة
-
 تم إلغاء الحجز المبدئي`
                 );
 
@@ -508,7 +483,6 @@ pendingRejectTimers[
                 userId,
 
 `⌛ انتهت مهلة الاختيار
-
 تم إلغاء الرحلة تلقائياً`
             );
 
@@ -731,17 +705,7 @@ for (
 
     await client.sendMessage(
         driver,
-        `🚖 طلب #${response.data.ride_id}
-
-من:
-${response.data.pickup}
-
-إلى:
-${response.data.destination}
-
-للحجز اكتب:
-
-#take ${response.data.ride_id}`
+      `🚖 #take ${response.data.ride_id} | ${response.data.pickup} ← ${response.data.destination}`
     );await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
@@ -886,12 +850,8 @@ ${response.data.destination}`
     await client.sendMessage(
         response.data.group_id,
 
-`✅ تم تأمين الرحلة
-
-المسار:
-${response.data.pickup}
-⬇
-${response.data.destination}`
+`✅  تم تأمين الرحلة سيتواصل معك السائق
+`
     );
 
 }
@@ -1050,6 +1010,7 @@ const realNumber =
         const response =
             await axios.post(
                 "http://127.0.0.1:8001/take-ride",
+                
                 {
                     ride_id:
                         Number(rideId),
@@ -1058,6 +1019,18 @@ const realNumber =
                          realNumber
                 }
             );
+            if (
+    response.data.status ===
+    "expired"
+) {
+
+    await client.sendMessage(
+        message.from,
+        "⏰ انتهت صلاحية هذه الرحلة"
+    );
+
+    return;
+}
 
             if (
     response.data.status ===
@@ -1066,7 +1039,7 @@ const realNumber =
 
     await client.sendMessage(
         userId,
-        "❌ هذه الرحلة تم حجزها بالفعل بواسطة سائق آخر"
+        "❌ هذه الرحلة تم حجزها بواسطة سائق آخر"
     );
 
     return;
@@ -1084,20 +1057,10 @@ const realNumber =
 
 المسار:
 ${response.data.pickup}
-
 ⬇
-
 ${response.data.destination}
-
 هل توافق على الرحلة؟
-
-اكتب:
-
-نعم
-
-أو
-
-لا`
+اكتب : نعم او لا `
             );
 
             await client.sendMessage(

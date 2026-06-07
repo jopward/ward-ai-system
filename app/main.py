@@ -499,6 +499,11 @@ def take_ride_api(
             "status":
                 "ride_not_found"
         }
+    if ride == "expired":
+
+        return {
+        "status": "expired"
+        }
 
     if ride is False:
 
