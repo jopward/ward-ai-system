@@ -232,7 +232,10 @@ console.log(
             await client.sendMessage(
                 driver,
 
-`🚖 #take ${response.data.ride_id} | ${response.data.pickup} ← ${response.data.destination}` );await axios.post(
+`🚖 #take  ${response.data.ride_id} 
+راكب مـن ${response.data.pickup} إلـى ${response.data.destination}  
+🕒 ${response.data.ride_time}` );
+await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
         ride_id:
@@ -283,7 +286,8 @@ console.log(
                await client.sendMessage(
     DRIVER_GROUP_ID,
 
-`🚖 #take ${response.data.ride_id} | ${ride.pickup} ← ${ride.destination}`
+`🚖 #take ${response.data.ride_id} 
+راكب من  ${ride.pickup} إلى ${ride.destination}  `
 );
 
 console.log(
@@ -705,7 +709,9 @@ for (
 
     await client.sendMessage(
         driver,
-      `🚖 #take ${response.data.ride_id} | ${response.data.pickup} ← ${response.data.destination}`
+      `🚖 #take ${response.data.ride_id} 
+      راكب مـن ${response.data.pickup} الى ${response.data.destination}  
+       ${response.data.ride_time}`
     );await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
@@ -837,12 +843,8 @@ const originalMessage =
 if (originalMessage) {
 
     await originalMessage.reply(
-`✅ تم تأمين الرحلة
-
-المسار:
-${response.data.pickup}
-⬇
-${response.data.destination}`
+`✅  تم تأمين الرحلة سيتواصل معك السائق الان
+`
     );
 
 } else {
@@ -850,7 +852,7 @@ ${response.data.destination}`
     await client.sendMessage(
         response.data.group_id,
 
-`✅  تم تأمين الرحلة سيتواصل معك السائق
+`✅  تم تأمين الرحلة سيتواصل معك السائق الان
 `
     );
 
@@ -982,6 +984,116 @@ if (
 
     return;
 }
+const ACCEPT_WORDS = [
+    "احجز",
+    "تم",
+    "اوك",
+    "ok",
+    "موافق",
+    "جاهز"
+];
+
+if (
+    message.hasQuotedMsg &&
+    ACCEPT_WORDS.includes(
+        message.body.trim().toLowerCase()
+    )
+) {
+
+    try {
+
+        const quoted =
+            await message.getQuotedMessage();
+
+        const match =
+            quoted.body.match(
+                /#take\s+(\d+)/
+            );
+
+        if (!match) {
+
+            return;
+
+        }
+
+        const rideId =
+            Number(match[1]);
+
+        const contact =
+            await message.getContact();
+
+        const realNumber =
+            contact.id._serialized;
+
+        const response =
+            await axios.post(
+                "http://127.0.0.1:8001/take-ride",
+                {
+                    ride_id: rideId,
+                    driver_number: realNumber
+                }
+            );
+
+        if (
+            response.data.status ===
+            "expired"
+        ) {
+
+            await client.sendMessage(
+                message.from,
+                "⏰ انتهت صلاحية هذه الرحلة"
+            );
+
+            return;
+
+        }
+
+        if (
+            response.data.status ===
+            "already_taken"
+        ) {
+
+            await client.sendMessage(
+                message.from,
+                "❌ هذه الرحلة تم حجزها بواسطة سائق آخر"
+            );
+
+            return;
+
+        }
+
+        if (
+    response.data.status ===
+    "pending_confirmation"
+) {
+
+    await client.sendMessage(
+        response.data.customer_number,
+
+`🚖 تم العثور على سائق
+
+المسار:
+${response.data.pickup}
+⬇
+${response.data.destination}
+
+هل توافق على الرحلة؟
+اكتب : نعم او لا`
+    );
+
+}
+    } catch (e) {
+
+        console.log(
+            "REPLY TAKE ERROR",
+            e.message
+        );
+
+    }
+
+    return;
+}
+
 if (
     message.body.startsWith(
         "#take "

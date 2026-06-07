@@ -61,8 +61,9 @@ def extract_pickup_destination(text):
         destination = match.group(2).strip()
 
         destination = re.split(
-            r"\s+(?:الان|اليوم|غدا|بكره|بحاجه|بحاجة|راكب|ركاب)",
-            destination
+            r"(?:الساعه|الساعة|ع ساعه|ع الساعة|على الساعه|على الساعة|صباحا|صباحاً|مساء|مساءً|غدا|غداً|بكره|بكرا)",
+            destination,
+            maxsplit=1
         )[0].strip()
 
         return (
@@ -100,3 +101,31 @@ def extract_pickup_destination(text):
         "unknown",
         "unknown"
     )
+
+def extract_time(text):
+
+    text = normalize(text)
+
+    if "الان" in text:
+        return "الآن"
+
+    day = "اليوم"
+
+    if "غدا" in text or "بكره" in text:
+        day = "غداً"
+
+    match = re.search(
+        r"(?:الساعه|ع ساعه|على الساعه)\s*([0-9٠-٩:\.]+)",
+        text
+    )
+
+    if match:
+        return f"{day} {match.group(1)}"
+
+    if "صباح" in text:
+        return f"{day} صباحاً"
+
+    if "مساء" in text:
+        return f"{day} مساءً"
+
+    return day

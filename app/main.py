@@ -7,7 +7,8 @@ from app.models.conversation import Conversation
 from app.models.driver_interest import DriverInterest
 from app.models.ride_notification import RideNotification
 from app.services.location_service import (
-    extract_pickup_destination
+    extract_pickup_destination,
+    extract_time
 )
 
 from app.services.ride_service import (
@@ -208,6 +209,10 @@ def ride_test(message: Message):
             message.text
         )
 
+        ride_time = extract_time(
+            message.text
+        )
+
         ride_id = create_ride(
             customer_number=message.user_id,
             message=message.text,
@@ -217,13 +222,14 @@ def ride_test(message: Message):
             message_id=message.message_id
         )
 
-        return {
+    return {
             "ride_id": ride_id,
             "status": "saved",
             "pickup": pickup,
             "destination": destination,
+            "ride_time": ride_time,
             "keywords": keywords
-        }
+   }
 
     return {
         "status": "ignored"
