@@ -230,11 +230,14 @@ console.log(
         try {
 
             await client.sendMessage(
-                driver,
+    driver,
+`🚖 #take ${response.data.ride_id}
 
-`🚖 #take  ${response.data.ride_id} 
-راكب مـن ${response.data.pickup} إلـى ${response.data.destination}  
-🕒 ${response.data.ride_time}` );
+📍 ${response.data.pickup} ← ${response.data.destination}
+🕒 ${response.data.ride_time}
+📝 المنشور الأصلي:
+${message.body}`
+);
 await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
@@ -706,13 +709,16 @@ for (
         "SENDING TO DRIVER =",
         driver
     );
+    
 
     await client.sendMessage(
-        driver,
-      `🚖 #take ${response.data.ride_id} 
-      راكب مـن ${response.data.pickup} الى ${response.data.destination}  
-       ${response.data.ride_time}`
-    );await axios.post(
+    driver,
+`🚖 #take ${response.data.ride_id}
+📍 ${response.data.pickup} ← ${response.data.destination}
+🕒 ${response.data.ride_time}
+📝 المنشور الأصلي:
+${message.body}`
+);await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
         ride_id:
@@ -843,7 +849,7 @@ const originalMessage =
 if (originalMessage) {
 
     await originalMessage.reply(
-`✅  تم تأمين الرحلة سيتواصل معك السائق الان
+`✅  تم تأمينك سيتواصل معك السائق الان
 `
     );
 
@@ -852,7 +858,7 @@ if (originalMessage) {
     await client.sendMessage(
         response.data.group_id,
 
-`✅  تم تأمين الرحلة سيتواصل معك السائق الان
+`✅  تم تأمينك سيتواصل معك السائق الان
 `
     );
 
