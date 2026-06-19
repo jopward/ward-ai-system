@@ -41,6 +41,7 @@ client.on('ready', () => {
     console.log('✅ WhatsApp AI Ready!');
 
 });
+let BOT_ENABLED = true;
 const pendingConfirmations = {};
 const pendingRejectChoice = {};
 const confirmWords = [
@@ -70,7 +71,7 @@ const wifeIds = [
 ];
 
 //"90688670703663"
-
+ 
 
 client.on('message', async (message) => {
 
@@ -88,6 +89,40 @@ console.log(
     "TYPE =",
     message.type
 );
+const isGroup = message.from.includes("@g.us");
+const userId = message.from;
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#off"
+) {
+
+    BOT_ENABLED = false;
+
+    await message.reply(
+        "⛔ تم إيقاف البوت"
+    );
+
+    return;
+}
+
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#on"
+) {
+
+    BOT_ENABLED = true;
+
+    await message.reply(
+        "✅ تم تشغيل البوت"
+    );
+
+    return;
+}
+
+        if (!BOT_ENABLED) {
+    return;
+}
+       
   if (
     message.body.trim() === "طلبات"
 ) {
@@ -163,13 +198,10 @@ const destinationMatch =
         /^بدي ركاب\s+ل(.+)$/i
     );
 
-if (
-    destinationMatch
-) {
+if (destinationMatch) {
 
     const destination =
-        destinationMatch[1]
-            .trim();
+        destinationMatch[1].trim();
 
     const response =
         await axios.get(
@@ -181,26 +213,13 @@ if (
 
 `;
 
-    if (
-        response.data.length === 0
-    ) {
+    for (const ride of response.data) {
 
         text +=
-            "لا يوجد طلبات حالياً";
-
-    } else {
-
-       for (
-    const ride
-    of response.data
-) {
-
-    text +=
 `#take ${ride.ride_id}
 📍 ${ride.pickup} ← ${ride.destination}
 
 `;
-}
     }
 
     await client.sendMessage(
@@ -209,124 +228,41 @@ if (
     );
 
     return;
-}
-        if (
-    message.hasMedia &&
-    (
-        message.type === "ptt" ||
-        message.type === "audio"
-    )
-) {
+}   if (
+    message.from === OWNER_NUMBER &&
+    message.body.startsWith("#system")
+)
+ {
+
+    const prompt = message.body
+        .replace("#system", "")
+        .trim();
 
     try {
 
-        console.log(
-            "VOICE MESSAGE DETECTED"
-        );
-
-        const media =
-            await message.downloadMedia();
-
-        const FormData =
-            require("form-data");
-
-        const form =
-            new FormData();
-
-        form.append(
-            "file",
-            Buffer.from(
-                media.data,
-                "base64"
-            ),
+        await axios.post(
+            "http://127.0.0.1:8001/system-prompt",
             {
-                filename: "voice.ogg",
-                contentType:
-                    media.mimetype
+                content: prompt
             }
         );
 
-        const response =
-            await axios.post(
-                "http://127.0.0.1:8001/transcribe-audio",
-                form,
-                {
-                    headers:
-                        form.getHeaders()
-                }
-            );
-
-        console.log(
-            "VOICE TEXT =",
-            response.data.text
+        await message.reply(
+            "✅ تم تحديث البرومبت"
         );
 
-        message.body =
-            response.data.text || "";
+    } catch (error) {
 
-    } catch (e) {
+        console.log(error);
 
-        console.log(
-            "VOICE ERROR =",
-            e.message
+        await message.reply(
+            "❌ فشل تحديث البرومبت"
         );
 
-        return;
     }
+
+    return;
 }
-
-        // تجاهل رسائل البوت نفسه
-        if (message.fromMe) return;
-
-
-        // فحص هل الرسالة من جروب
-        const isGroup = message.from.includes("@g.us");
-
-        // تجاهل الرسائل الفاضية
-        if (!message.body || message.body.trim() === "") {
-            return;
-        }
-
-        const userId = message.from;
-
-        // أوامر المالك
-        if (
-            message.from === OWNER_NUMBER &&
-            message.body.startsWith("#system")
-        ) {
-
-            const prompt = message.body
-                .replace("#system", "")
-                .trim();
-
-            try {
-
-                await axios.post(
-                    "http://127.0.0.1:8001/system-prompt",
-                    {
-                        content: prompt
-                    }
-                );
-
-                await message.reply(
-                    "✅ تم تحديث البرومبت"
-                );
-
-            } catch (error) {
-
-                console.log(error);
-
-                await message.reply(
-                    "❌ فشل تحديث البرومبت"
-                );
-
-            }
-
-            return;
-        }
-
-
-
 
 
         // فحص هل الرسالة من جروب
