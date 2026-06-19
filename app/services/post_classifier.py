@@ -12,28 +12,42 @@ def classify_post(text):
     )
 
     print("AFTER STRIP =", repr(text))
+
+    if len(text.split()) < 3:
+        return "unknown"
+
     passenger_patterns = [
 
-        "بحاجه سياره",
+        "راكب من",
+        "راكب الى",
+        "راكب ع",
+        "راكب بدو",
+        "راكب بده",
+        "راكب بحاجه",
+
+        "راكبين من",
+        "راكبين الى",
+        "راكبين بحاجه",
+
         "مطلوب سياره",
-        "مطلوب توصيله",
-        "توصيله",
         "بدي سياره",
         "اريد سياره",
-        "مين طالع",
-        "راكب من",
-        "راكب بدو",
-        "راكب بحاجه",
+        "بحاجه سياره",
         "بحاجه الى سياره",
-        "بحاجه توصيله"
+
+        "مطلوب توصيله",
+        "بحاجه توصيله",
+
+        "اوردر من",
+        "مشوار من",
+
+        "مين طالع",
+        "مين نازل",
+
+        "بدي اوصل",
+        "بده يوصل",
+        "بدو يوصل"
     ]
-
-    for pattern in passenger_patterns:
-
-        if pattern in text:
-
-            return "passenger"
-
 
     driver_patterns = [
 
@@ -41,27 +55,52 @@ def classify_post(text):
         "بحاجه راكبين",
         "بحاجه الى راكب",
         "بحاجه الى راكبين",
-        "راكبين",
-        "مقاعد",
-        "مقعدين",
+
         "متوفر مقعد",
         "متوفر مقعدين",
+
+        "عندي مقعد",
+        "عندي مقعدين",
+
+        "مقاعد",
+        "مقعدين",
+
         "تحميل",
-        "سياره الخميس",
+
         "سياره الان",
-        "سياره غدا"
+        "سياره غدا",
+        "سياره بكره",
+        "سياره الخميس",
+
+        "طالع من",
+        "نازل على",
+
+        "متوفر اماكن"
     ]
+
+    for pattern in passenger_patterns:
+
+        if pattern in text:
+            return "passenger"
+
+    # راكب بكره الساعه 8
+    # راكب اليوم
+    # راكبين صما اربد
+    if text.startswith("راكب"):
+        return "passenger"
+
+    if text.startswith("راكبه"):
+        return "passenger"
+
+    if text.startswith("راكبين"):
+        return "passenger"
 
     for pattern in driver_patterns:
 
         if pattern in text:
-
             return "driver"
-            
-    if text.startswith("سياره"):
 
+    if text.startswith("سياره"):
         return "driver"
 
     return "unknown"
-
- 

@@ -71,9 +71,209 @@ const wifeIds = [
 
 //"90688670703663"
 
+
 client.on('message', async (message) => {
 
     try {
+        console.log(
+            "MESSAGE BODY =",
+            message.body
+        );
+        console.log(
+    "FROM =",
+    message.from
+);
+
+console.log(
+    "TYPE =",
+    message.type
+);
+  if (
+    message.body.trim() === "طلبات"
+) {
+    console.log("REQUESTS COMMAND DETECTED");
+    console.log(
+        "REQUESTS COMMAND DETECTED"
+    );
+
+    const response =
+        await axios.get(
+            "http://127.0.0.1:8001/new-rides"
+        );
+
+    if (
+        response.data.length === 0
+    ) {
+
+        await client.sendMessage(
+            message.from,
+            "لا يوجد طلبات حالياً"
+        );
+
+        return;
+    }
+
+    for (
+        const ride
+        of response.data
+    ) {
+console.log("RIDE =", ride);
+        const created =
+            new Date(
+                ride.created_at
+            );
+
+        const now =
+            new Date();
+
+        const minutes =
+            Math.floor(
+                (now - created) / 60000
+            );
+
+        let age = "";
+
+        if (minutes < 60) {
+
+            age =
+                `منذ ${minutes} دقيقة`;
+
+        } else {
+
+            age =
+                `منذ ${Math.floor(minutes / 60)} ساعة`;
+        }
+
+        await client.sendMessage(
+            message.from,
+
+`🚖 #take ${ride.ride_id}
+
+📍 ${ride.pickup} ← ${ride.destination}
+📝${ride.message}
+🕒 ${age}`
+        );
+    }
+
+    return;
+}
+
+const destinationMatch =
+    message.body.match(
+        /^بدي ركاب\s+ل(.+)$/i
+    );
+
+if (
+    destinationMatch
+) {
+
+    const destination =
+        destinationMatch[1]
+            .trim();
+
+    const response =
+        await axios.get(
+`http://127.0.0.1:8001/rides-by-destination/${destination}`
+        );
+
+    let text =
+`🚖 طلبات إلى ${destination}
+
+`;
+
+    if (
+        response.data.length === 0
+    ) {
+
+        text +=
+            "لا يوجد طلبات حالياً";
+
+    } else {
+
+       for (
+    const ride
+    of response.data
+) {
+
+    text +=
+`#take ${ride.ride_id}
+📍 ${ride.pickup} ← ${ride.destination}
+
+`;
+}
+    }
+
+    await client.sendMessage(
+        message.from,
+        text
+    );
+
+    return;
+}
+        if (
+    message.hasMedia &&
+    (
+        message.type === "ptt" ||
+        message.type === "audio"
+    )
+) {
+
+    try {
+
+        console.log(
+            "VOICE MESSAGE DETECTED"
+        );
+
+        const media =
+            await message.downloadMedia();
+
+        const FormData =
+            require("form-data");
+
+        const form =
+            new FormData();
+
+        form.append(
+            "file",
+            Buffer.from(
+                media.data,
+                "base64"
+            ),
+            {
+                filename: "voice.ogg",
+                contentType:
+                    media.mimetype
+            }
+        );
+
+        const response =
+            await axios.post(
+                "http://127.0.0.1:8001/transcribe-audio",
+                form,
+                {
+                    headers:
+                        form.getHeaders()
+                }
+            );
+
+        console.log(
+            "VOICE TEXT =",
+            response.data.text
+        );
+
+        message.body =
+            response.data.text || "";
+
+    } catch (e) {
+
+        console.log(
+            "VOICE ERROR =",
+            e.message
+        );
+
+        return;
+    }
+}
 
         // تجاهل رسائل البوت نفسه
         if (message.fromMe) return;
@@ -162,7 +362,149 @@ console.log(
     "GROUP CONTACT =",
     contact
 );
+const badWords = [
+    "محترم",
+    "لعنة",
+    "قذر",
+    "حمار",
+    "تيس",
+    "كس",
+    "اختك",
+    "أختة",
+    "اخته",
+     "قحبة",
+     "كس",
+    "الشرموطة",
+    "أختة",
+    "اخته",
+     "قحبة",
+     "الشرموطه",
+     "كلب",
+     "يلعن",
+     "يلعنك",
+     "تعريس",
+     "بغل",
+     "الداعرة",
+     "ملعون",
+     "ينعن",
+     "قحبة",
+     "اعمى",
+    "خرا",
+    "خرأ",
+    "زب",
+    "سكس",
+    "ولك",
+    "خاوه",
+    "خاوة",
+    "حيوان",
+    "خواتي",
+    "شرفي",
+    "وله",
+    "ولك",
+    "منيك",
+    "منيوك",
+    "لعنة",
+    "لعنه",
 
+];
+
+const text =
+    message.body.toLowerCase();
+
+if (
+    badWords.some(
+        word => text.includes(word)
+    )
+) {
+
+    await message.delete(true);
+await client.sendMessage(
+    message.from,
+
+`⚠️ يرجى الالتزام بقوانين المجموعة وعدم استخدام الألفاظ غير اللائقة.`
+);
+
+    return;
+}
+
+              const ACCEPT_WORDS = [
+    "احجز",
+    "تم",
+    "اوك",
+    "ok",
+    "موافق",
+    "جاهز"
+];
+
+if (
+    message.hasQuotedMsg &&
+    ACCEPT_WORDS.includes(
+        message.body.trim().toLowerCase()
+    )
+) {
+
+    const quoted =
+        await message.getQuotedMessage();
+
+    const match =
+        quoted.body.match(
+            /#take\s+(\d+)/
+        );
+
+    if (!match) {
+        return;
+    }
+
+    const rideId =
+        Number(match[1]);
+
+    const contact =
+        await message.getContact();
+
+    const realNumber =
+        contact.id._serialized;
+
+    const response =
+        await axios.post(
+            "http://127.0.0.1:8001/take-ride",
+            {
+                ride_id: rideId,
+                driver_number: realNumber
+            }
+        );
+
+    console.log(
+        "GROUP TAKE RESPONSE =",
+        response.data
+    );
+
+    if (
+        response.data.status ===
+        "pending_confirmation"
+    ) {
+
+        await client.sendMessage(
+            response.data.customer_number,
+
+`🚖 تم العثور على سائق
+
+المسار:
+${response.data.pickup}
+⬇
+${response.data.destination}
+
+هل توافق على الرحلة؟
+اكتب: نعم أو لا`
+        );
+
+        await client.sendMessage(
+            realNumber,
+            "⏳ بانتظار موافقة الراكب"
+        );
+    }
+
+    return;
+}
                 const response =
                     await axios.post(
                         "http://127.0.0.1:8001/ride-test",
@@ -228,15 +570,16 @@ console.log(
     ) {
 
         try {
-
+            const customerNumber =
+    contact.id.user;
             await client.sendMessage(
     driver,
 `🚖 #take ${response.data.ride_id}
-
+📞 ${customerNumber}
 📍 ${response.data.pickup} ← ${response.data.destination}
 🕒 ${response.data.ride_time}
-📝 المنشور الأصلي:
-${message.body}`
+📝${message.body}`
+
 );
 await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
@@ -285,15 +628,20 @@ await axios.post(
                 check.data.status ===
                 "NEW"
             ) {
-
+               const customerNumber =
+    contact.id.user;
                await client.sendMessage(
     DRIVER_GROUP_ID,
 
-`🚖 #take ${response.data.ride_id} 
-راكب من  ${ride.pickup} إلى ${ride.destination}  `
+`🚖 #take ${response.data.ride_id}
+📞 ${customerNumber}
+📍 ${response.data.pickup} ← ${response.data.destination}
+🕒 ${response.data.ride_time}
+📝 ${message.body}`
+
 );
 
-console.log(
+ console.log(
     "PUBLISHED TO DRIVER GROUP"
 );
 
@@ -403,7 +751,17 @@ if (
             customer_number:
                 realNumber
         }
-    );
+    );console.log(
+    "PENDING CHECK =",
+    JSON.stringify(
+        pendingResponse.data
+    )
+);
+
+console.log(
+    "REAL NUMBER =",
+    realNumber
+);
 
 if (
     check.data.status ===
@@ -710,14 +1068,16 @@ for (
         driver
     );
     
-
+    const customerNumber =
+    contact.id.user;
     await client.sendMessage(
     driver,
 `🚖 #take ${response.data.ride_id}
+📞 ${customerNumber}
 📍 ${response.data.pickup} ← ${response.data.destination}
 🕒 ${response.data.ride_time}
-📝 المنشور الأصلي:
-${message.body}`
+📝 ${message.body}`
+
 );await axios.post(
     "http://127.0.0.1:8001/save-ride-notification",
     {
@@ -752,17 +1112,72 @@ console.log(
     "MESSAGE BODY =",
     message.body
 );
+console.log(
+    "MESSAGE BODY =",
+    message.body
+);
+
+const contact =
+    await message.getContact();
+
+const realNumber =
+    contact.id._serialized;
+
+const pendingResponse =
+    await axios.post(
+        "http://127.0.0.1:8001/check-pending-confirmation",
+        {
+            customer_number:
+                realNumber
+        }
+    );
+    console.log(
+    "PENDING CHECK =",
+    pendingResponse.data
+);
+
+console.log(
+    "REAL NUMBER =",
+    realNumber
+);
+
+if (
+    pendingResponse.data.status ===
+    "PENDING_CONFIRMATION"
+    &&
+    !confirmWords.includes(
+        message.body.trim().toLowerCase()
+    )
+    &&
+    !rejectWords.includes(
+        message.body.trim().toLowerCase()
+    )
+){
+
+    await client.sendMessage(
+        message.from,
+
+`⚠️ لديك رحلة بانتظار التأكيد
+
+اكتب فقط:
+
+نعم
+
+أو
+
+لا`
+    );
+
+    return;
+}
+
+
 if (
     confirmWords.includes(
         message.body.trim().toLowerCase()
     )
 ) {
 
-    const contact =
-        await message.getContact();
-
-    const realNumber =
-        contact.id._serialized;
 
     if (
     pendingConfirmations[
@@ -999,7 +1414,7 @@ const ACCEPT_WORDS = [
     "جاهز"
 ];
 
-if (
+if ( 
     message.hasQuotedMsg &&
     ACCEPT_WORDS.includes(
         message.body.trim().toLowerCase()
@@ -1010,6 +1425,20 @@ if (
 
         const quoted =
             await message.getQuotedMessage();
+            console.log(
+    "QUOTED BODY =",
+    quoted.body
+);
+
+console.log(
+    "FROM =",
+    message.from
+);
+
+console.log(
+    "HAS QUOTED =",
+    message.hasQuotedMsg
+);
 
         const match =
             quoted.body.match(
@@ -1085,7 +1514,63 @@ ${response.data.destination}
 
 هل توافق على الرحلة؟
 اكتب : نعم او لا`
-    );
+    );await client.sendMessage(
+    realNumber,
+    "⏳ بانتظار موافقة الراكب"
+);
+
+pendingConfirmations[
+    response.data.customer_number
+] = setTimeout(
+    async () => { 
+        console.log(
+            "TIMEOUT FIRED",
+            response.data.customer_number
+        );
+
+        try {
+
+            await axios.post(
+                "http://127.0.0.1:8001/expire-ride",
+                {
+                    customer_number:
+                        response.data.customer_number
+                }
+            );
+
+            await client.sendMessage(
+                response.data.customer_number,
+
+`⌛ انتهت مهلة تأكيد الرحلة
+
+إذا كنت ما زلت بحاجة إلى مشوار،
+أرسل طلباً جديداً`
+            );
+
+            await client.sendMessage(
+                response.data.driver_number,
+
+`⌛ لم يرد الراكب خلال المهلة
+
+تم إلغاء الحجز المبدئي`
+            );
+
+        } catch (e) {
+
+            console.log(
+                "TIMEOUT ERROR",
+                e.message
+            );
+
+        }
+
+        delete pendingConfirmations[
+            response.data.customer_number
+        ];
+
+    },
+    180000
+);
 
 }
     } catch (e) {
@@ -1297,6 +1782,7 @@ ${response.data.destination}
                 userBuffers[userId].messages = [];
 
                 // إرسال للـ API
+                /*
                 const response = await axios.post(
 
                     'http://127.0.0.1:8001/chat',
@@ -1322,6 +1808,30 @@ ${response.data.destination}
                     userId,
                     aiReply
                 );
+                */
+
+                  /*
+               await client.sendMessage(
+    userId,
+
+`🚖 مرحباً بك في Ward AI للنقل
+
+لإنشاء طلب:
+بدي سيارة من اربد إلى عمان
+
+أوامر السائق:
+
+طلبات
+بدي ركاب لاربد
+بدي ركاب من صما
+
+للتسجيل:
+#interest اربد`
+);
+
+return;
+ */
+return;
 
             } catch (error) {
 

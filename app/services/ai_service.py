@@ -13,6 +13,7 @@ from app.services.memory_service import (
 )
 
 from app.services.tools_service import run_tool
+from pathlib import Path
 
 load_dotenv()
 
@@ -30,6 +31,80 @@ groq_client = Groq(
     api_key=os.getenv("GROQ_API_KEY")
 )
 
+def transcribe_audio(audio_path):
+
+    try:
+
+        with open(audio_path, "rb") as audio_file:
+
+            transcription = (
+                groq_client.audio.transcriptions.create(
+                    file=(
+                        Path(audio_path).name,
+                        audio_file.read()
+                    ),
+                    model="whisper-large-v3",
+                    language="ar"
+                )
+            )
+
+        raw_text = transcription.text
+
+        print(
+            "RAW VOICE TEXT =",
+            raw_text
+        )
+
+        try:
+
+            response = gemini_model.generate_content(
+                f"""
+أنت مصحح لنصوص WhatsApp الناتجة من تفريغ الصوت.
+
+القواعد:
+
+- لا تغير معنى الجملة.
+- لا تعيد صياغتها.
+- صحح فقط أخطاء التفريغ الواضحة.
+- صحح أسماء المدن والقرى الأردنية إذا كانت واضحة.
+- إذا كان النص صحيحاً أعده كما هو.
+- أرجع النص فقط بدون أي شرح.
+
+النص:
+
+
+{raw_text}
+"""
+            )
+
+            fixed_text = (
+                response.text.strip()
+            )
+
+            print(
+                "FIXED VOICE TEXT =",
+                fixed_text
+            )
+
+            return fixed_text
+
+        except Exception as e:
+
+            print(
+                "VOICE FIX ERROR =",
+                e
+            )
+
+            return raw_text
+
+    except Exception as e:
+
+        print(
+            "TRANSCRIBE ERROR =",
+            e
+        )
+
+        return ""
 
 def get_ai_reply(user_id, message, is_wife=False):
 

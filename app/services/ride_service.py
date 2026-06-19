@@ -1,6 +1,7 @@
 from app.core.database import SessionLocal
 from app.models.ride import Ride
 from datetime import datetime, timedelta
+from app.services.post_classifier import classify_post
 import re
 
 
@@ -39,28 +40,14 @@ def create_ride(
     return ride_id
 
 
+
+
 def detect_ride_request(message):
 
-    ride_words = [
-       "راكب",
-       "راكبه",
-        "ركاب",
-        "من ",
-        "بدي سيارة",
-        "بدي تكسي",
-        "توصيلة",
-        "مشوار"
-    ]
-
-    message = message.lower()
-
-    for word in ride_words:
-
-        if word in message:
-
-            return True
-
-    return False
+    return (
+        classify_post(message)
+        == "passenger"
+    )
 
 
 def get_all_rides():
@@ -645,3 +632,50 @@ def cancel_customer_ride(
     finally:
 
         db.close()
+        
+
+
+
+def get_new_rides(limit=10):
+
+    db = SessionLocal()
+
+    rides = (
+        db.query(Ride)
+        .filter(
+            Ride.status == "NEW"
+        )
+        .order_by(
+            Ride.created_at.asc()
+        )
+        .limit(limit)
+        .all()
+    )
+
+    db.close()
+
+    return rides     
+def get_rides_by_destination(destination):
+
+    db = SessionLocal()
+
+    rides = (
+        db.query(Ride)
+        .filter(
+            Ride.status == "NEW"
+        )
+        .filter(
+            Ride.destination.contains(
+                destination
+            )
+        )
+        .order_by(
+            Ride.created_at.asc()
+        )
+        .all()
+    )
+
+    db.close()
+
+    return rides
+   

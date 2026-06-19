@@ -22,6 +22,7 @@ from app.services.ride_service import (
     complete_ride,
     get_pending_confirmation_ride,
     confirm_ride,
+    get_rides_by_destination,
      take_ride
 )
 
@@ -38,6 +39,10 @@ from app.services.post_classifier import (
 
 from app.services.ride_service import (
     reject_ride
+)
+
+from app.services.ride_service import (
+    get_new_rides
 )
 
 app = FastAPI()
@@ -222,7 +227,7 @@ def ride_test(message: Message):
             message_id=message.message_id
         )
 
-    return {
+        return {
             "ride_id": ride_id,
             "status": "saved",
             "pickup": pickup,
@@ -769,5 +774,113 @@ def check_pending_confirmation(
 
     return {
         "status":
-            "found"
+            "PENDING_CONFIRMATION"
     }
+
+from fastapi import UploadFile, File
+from app.services.ai_service import transcribe_audio
+import tempfile
+import os
+
+@app.get("/new-rides")
+def new_rides():
+
+    rides = get_new_rides()
+
+    result = []
+
+    for ride in rides:
+
+        result.append({
+
+            "ride_id": ride.id,
+
+            "pickup": ride.pickup,
+
+            "destination": ride.destination,
+            
+            "message": ride.message,
+                        
+            "created_at": str(
+                ride.created_at
+            )
+
+        })
+
+    return result
+
+@app.get(
+    "/rides-by-destination/{destination}"
+)
+def rides_by_destination(
+    destination: str
+):
+
+    rides = (
+        get_rides_by_destination(
+            destination
+        )
+    )
+
+    result = []
+
+    for ride in rides:
+
+        result.append({
+
+            "ride_id": ride.id,
+
+            "pickup": ride.pickup,
+
+            "destination": ride.destination,
+
+            "created_at": str(
+                ride.created_at
+            )
+
+        })
+
+    return result
+
+@app.post("/transcribe-audio")
+async def transcribe_audio_api(
+    file: UploadFile = File(...)
+):
+
+    suffix = (
+        os.path.splitext(
+            file.filename
+        )[1]
+        or ".ogg"
+    )
+
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=suffix
+    ) as temp_file:
+
+        temp_file.write(
+            await file.read()
+        )
+
+        temp_path = temp_file.name
+
+    try:
+
+        text = transcribe_audio(
+            temp_path
+        )
+
+        return {
+            "text": text
+        }
+
+    finally:
+
+        if os.path.exists(
+            temp_path
+        ):
+
+            os.remove(
+                temp_path
+            )
