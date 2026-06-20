@@ -42,6 +42,10 @@ client.on('ready', () => {
 
 });
 let BOT_ENABLED = true;
+let PASSENGER_GROUP_PUBLISH = true;
+let BADWORDS_ENABLED = true;
+let DRIVERS_ENABLED = true;
+
 const pendingConfirmations = {};
 const pendingRejectChoice = {};
 const confirmWords = [
@@ -118,7 +122,87 @@ if (
 
     return;
 }
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#publish_off"
+) {
 
+    PASSENGER_GROUP_PUBLISH = false;
+
+    await message.reply(
+        "⛔ تم إيقاف النشر في مجموعة الركاب"
+    );
+
+    return;
+}
+
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#publish_on"
+) {
+
+    PASSENGER_GROUP_PUBLISH = true;
+
+    await message.reply(
+        "✅ تم تفعيل النشر في مجموعة الركاب"
+    );
+
+    return;
+}
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#badwords_off"
+) {
+
+    BADWORDS_ENABLED = false;
+
+    await message.reply(
+        "⛔ تم تعطيل فلتر الكلمات المسيئة"
+    );
+
+    return;
+}
+
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#badwords_on"
+) {
+
+    BADWORDS_ENABLED = true;
+
+    await message.reply(
+        "✅ تم تفعيل فلتر الكلمات المسيئة"
+    );
+
+    return;
+}
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#drivers_off"
+) {
+
+    DRIVERS_ENABLED = false;
+
+    await message.reply(
+        "⛔ تم إيقاف إرسال الطلبات للسائقين"
+    );
+
+    return;
+}
+
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#drivers_on"
+) {
+
+    DRIVERS_ENABLED = true;
+
+    await message.reply(
+        "✅ تم تفعيل إرسال الطلبات للسائقين"
+    );
+
+    return;
+}
         if (!BOT_ENABLED) {
     return;
 }
@@ -348,17 +432,18 @@ const text =
     message.body.toLowerCase();
 
 if (
+    BADWORDS_ENABLED &&
     badWords.some(
         word => text.includes(word)
     )
 ) {
 
     await message.delete(true);
-await client.sendMessage(
-    message.from,
 
-`⚠️ يرجى الالتزام بقوانين المجموعة وعدم استخدام الألفاظ غير اللائقة.`
-);
+    await client.sendMessage(
+        message.from,
+        `⚠️ يرجى الالتزام بقوانين المجموعة وعدم استخدام الألفاظ غير اللائقة.`
+    );
 
     return;
 }
@@ -481,6 +566,14 @@ ${response.data.destination}
     response.data.status ===
     "saved"
 ) {
+    if (!DRIVERS_ENABLED) {
+
+    console.log(
+        "DRIVER PUBLISH DISABLED"
+    );
+
+    return;
+}
 
     const drivers =
         await axios.post(
@@ -1197,24 +1290,25 @@ const originalMessage =
             response.data.message_id
     );
 
-if (originalMessage) {
+if (PASSENGER_GROUP_PUBLISH) {
 
-    await originalMessage.reply(
-`✅  تم تأمينك سيتواصل معك السائق الان
-`
-    );
+    if (originalMessage) {
 
-} else {
+        await originalMessage.reply(
+`✅ تم تأمينك سيتواصل معك السائق الان`
+        );
 
-    await client.sendMessage(
-        response.data.group_id,
+    } else {
 
-`✅  تم تأمينك سيتواصل معك السائق الان
-`
-    );
+        await client.sendMessage(
+            response.data.group_id,
+
+`✅ تم تأمينك سيتواصل معك السائق الان`
+        );
+
+    }
 
 }
-
             await client.sendMessage(
                 userId,
 
