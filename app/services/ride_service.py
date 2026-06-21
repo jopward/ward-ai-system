@@ -15,6 +15,11 @@ def create_ride(
 ):
 
     db = SessionLocal()
+    customer_number = (
+        customer_number
+        .replace("@c.us", "")
+        .replace("@lid", "")
+    )
 
     ride = Ride(
         customer_number=customer_number,

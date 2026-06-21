@@ -1,6 +1,9 @@
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
+const {
+    normalizePhone
+} = require("./utils/phone");
 const OWNER_NUMBER = "90688670703663@lid";
 const DRIVER_GROUP_ID =
 "120363425338510691@g.us";
@@ -74,7 +77,7 @@ const wifeIds = [
 
 ];
 
-//"90688670703663"
+//"90688670703663" للل ااا  للل ببب فف لل تت للل لل 
  
 
 client.on('message', async (message) => {
@@ -93,6 +96,66 @@ console.log(
     "TYPE =",
     message.type
 );
+
+if (message.type === "ptt") {
+
+    try {
+
+        console.log(
+            "VOICE MESSAGE DETECTED"
+        );
+
+        const media =
+            await message.downloadMedia();
+
+        const FormData =
+            require("form-data");
+
+        const form =
+            new FormData();
+
+        form.append(
+            "file",
+            Buffer.from(
+                media.data,
+                "base64"
+            ),
+            {
+                filename: "voice.ogg",
+                contentType:
+                    media.mimetype
+            }
+        );
+
+        const response =
+            await axios.post(
+                "http://127.0.0.1:8001/transcribe-audio",
+                form,
+                {
+                    headers:
+                        form.getHeaders()
+                }
+            );
+
+        console.log(
+            "VOICE TEXT =",
+            response.data.text
+        );
+
+        message.body =
+            response.data.text || "";
+
+    } catch (e) {
+
+        console.log(
+            "VOICE ERROR =",
+            e.message
+        );
+
+        return;
+    }
+}
+
 const isGroup = message.from.includes("@g.us");
 const userId = message.from;
 if (
@@ -203,13 +266,125 @@ if (
 
     return;
 }
+if (
+    message.from === OWNER_NUMBER &&
+    message.body.startsWith("#adddriver ")
+) {
+
+    const phone =
+        message.body
+            .replace("#adddriver ", "")
+            .trim();
+
+    await axios.post(
+        "http://127.0.0.1:8001/add-driver",
+        {
+            phone:
+         normalizePhone(phone),
+
+            name:
+                "Driver"
+        }
+    );
+
+    await message.reply(
+        "✅ تم إضافة السائق"
+    );
+
+    return;
+}
+if (
+    message.from === OWNER_NUMBER &&
+    message.body.startsWith("#removedriver ")
+) {
+
+    const phone =
+        message.body
+            .replace(
+                "#removedriver ",
+                ""
+            )
+            .trim();
+
+    await axios.post(
+        "http://127.0.0.1:8001/remove-driver",
+        {
+            phone:
+                normalizePhone(phone)
+        }
+    );
+
+    await message.reply(
+        "🗑️ تم حذف السائق"
+    );
+
+    return;
+}
+if (
+    message.from === OWNER_NUMBER &&
+    message.body === "#drivers"
+) {
+
+    const response =
+        await axios.get(
+            "http://127.0.0.1:8001/drivers"
+        );
+
+    let text =
+        "🚖 السائقون المعتمدون\n\n";
+
+   for (
+    const driver
+    of response.data
+) {
+
+ text += `${driver.phone}\n`;
+}
+
+    await message.reply(
+        text
+    );
+
+    return;
+}
         if (!BOT_ENABLED) {
     return;
 }
-       
-  if (
+
+
+ if (
     message.body.trim() === "طلبات"
 ) {
+
+    const contact =
+        await message.getContact();
+
+console.log("FROM =", message.from);
+console.log("SERIALIZED =", contact.id._serialized);
+console.log("USER =", contact.id.user);
+
+const realNumber =
+    normalizePhone(
+         contact.id.user
+    );
+
+const driverCheck =
+    await axios.post(
+        "http://127.0.0.1:8001/check-driver",
+        {
+            phone: realNumber
+        }
+    );
+
+    if (!driverCheck.data.allowed) {
+
+        await message.reply(
+            "❌ هذا الرقم غير معتمد كسائق"
+        );
+
+        return;
+    }
+
     console.log("REQUESTS COMMAND DETECTED");
     console.log(
         "REQUESTS COMMAND DETECTED"
@@ -483,16 +658,25 @@ if (
         await message.getContact();
 
     const realNumber =
-        contact.id._serialized;
+       contact.id.user;
+
+       
+
+        
 
     const response =
         await axios.post(
             "http://127.0.0.1:8001/take-ride",
+            
             {
                 ride_id: rideId,
                 driver_number: realNumber
             }
         );
+        console.log(
+    "TAKE RESPONSE =",
+    JSON.stringify(response.data)
+);
 
     console.log(
         "GROUP TAKE RESPONSE =",
@@ -505,7 +689,7 @@ if (
     ) {
 
         await client.sendMessage(
-            response.data.customer_number,
+            `${response.data.customer_number}@c.us`,
 
 `🚖 تم العثور على سائق
 
@@ -519,7 +703,7 @@ ${response.data.destination}
         );
 
         await client.sendMessage(
-            realNumber,
+            `${realNumber}@c.us`,
             "⏳ بانتظار موافقة الراكب"
         );
     }
@@ -602,7 +786,7 @@ ${response.data.destination}
             const customerNumber =
     contact.id.user;
             await client.sendMessage(
-    driver,
+    `${driver}@c.us`,
 `🚖 #take ${response.data.ride_id}
 📞 ${customerNumber}
 📍 ${response.data.pickup} ← ${response.data.destination}
@@ -624,8 +808,8 @@ await axios.post(
         } catch (e) {
 
             console.log(
-                "SEND DRIVER ERROR",
-                e.message
+                "SEND DRIVER ERROR FULL =",
+        e
             );
 
         }
@@ -772,7 +956,7 @@ if (
         await message.getContact();
 
     const realNumber =
-        contact.id._serialized;
+        contact.id.user;
         const check =
     await axios.post(
         "http://127.0.0.1:8001/check-pending-confirmation",
@@ -783,7 +967,7 @@ if (
     );console.log(
     "PENDING CHECK =",
     JSON.stringify(
-        pendingResponse.data
+         check.data
     )
 );
 
@@ -847,7 +1031,7 @@ pendingRejectTimers[
                 await message.getContact();
 
             const realNumber =
-                contact.id._serialized;
+                 contact.id.user;
 
             const cancelResponse =
                 await axios.post(
@@ -864,8 +1048,8 @@ pendingRejectTimers[
             ) {
 
                 await client.sendMessage(
-                    cancelResponse.data
-                        .driver_number,
+                   `${cancelResponse.data.driver_number}@c.us`,
+
 
 `❌ لم يرد الراكب خلال المهلة
 تم إلغاء الحجز المبدئي`
@@ -932,7 +1116,7 @@ if (
         await message.getContact();
 
     const realNumber =
-        contact.id._serialized;
+       contact.id.user;
 if (
     pendingRejectTimers[userId]
 ) {
@@ -963,7 +1147,7 @@ if (
 ) {
 
     await client.sendMessage(
-        cancelResponse.data.driver_number,
+          `${cancelResponse.data.driver_number}@c.us`,
 
 `❌ تم إلغاء الرحلة من قبل الراكب`
     );
@@ -1009,7 +1193,7 @@ await client.sendMessage(
         await message.getContact();
 
     const realNumber =
-        contact.id._serialized;
+        contact.id.user;
 
     const response =
         await axios.post(
@@ -1100,7 +1284,7 @@ for (
     const customerNumber =
     contact.id.user;
     await client.sendMessage(
-    driver,
+    `${driver}@c.us`,
 `🚖 #take ${response.data.ride_id}
 📞 ${customerNumber}
 📍 ${response.data.pickup} ← ${response.data.destination}
@@ -1150,7 +1334,7 @@ const contact =
     await message.getContact();
 
 const realNumber =
-    contact.id._serialized;
+     contact.id.user;
 
 const pendingResponse =
     await axios.post(
@@ -1263,7 +1447,8 @@ if (
                     .replace("@lid", "");
 
             await client.sendMessage(
-                response.data.driver_number,
+                
+                    `${response.data.driver_number}@c.us`,
 
 `✅ تم تأكيد الرحلة
 
@@ -1351,17 +1536,42 @@ if (
             .split(/\s+/);
 
     try {
+    const contact =
+    await message.getContact();
+
+const realNumber =
+    contact.id.user;
+        const driverCheck =
+    await axios.post(
+        "http://127.0.0.1:8001/check-driver",
+        {
+            phone: realNumber
+        }
+    );
+
+if (!driverCheck.data.allowed) {
+
+    await message.reply(
+        "❌ هذا الرقم غير معتمد كسائق"
+    );
+
+    return;
+}
 
         for (
             const keyword
             of keywords
         ) {
+            const contact =
+    await message.getContact();
 
+const realNumber =
+    contact.id.user;
             await axios.post(
                 "http://127.0.0.1:8001/add-interest",
                 {
                     driver_number:
-                        userId,
+                        realNumber,
 
                     keyword:
                         keyword
@@ -1396,12 +1606,18 @@ if (
 
     try {
 
+        const contact =
+            await message.getContact();
+
+        const realNumber =
+            contact.id.user;
+
         const response =
             await axios.post(
                 "http://127.0.0.1:8001/my-interests",
                 {
                     driver_number:
-                        userId
+                        realNumber
                 }
             );
 
@@ -1488,7 +1704,8 @@ console.log(
             await message.getContact();
 
         const realNumber =
-            contact.id._serialized;
+            contact.id.user;
+           
 
         const response =
             await axios.post(
@@ -1533,7 +1750,7 @@ console.log(
 ) {
 
     await client.sendMessage(
-        response.data.customer_number,
+       `${response.data.customer_number}@c.us`,
 
 `🚖 تم العثور على سائق
 
@@ -1545,7 +1762,7 @@ ${response.data.destination}
 هل توافق على الرحلة؟
 اكتب : نعم او لا`
     );await client.sendMessage(
-    realNumber,
+    `${realNumber}@c.us`,
     "⏳ بانتظار موافقة الراكب"
 );
 
@@ -1555,7 +1772,7 @@ pendingConfirmations[
     async () => { 
         console.log(
             "TIMEOUT FIRED",
-            response.data.customer_number
+           response.data.customer_number
         );
 
         try {
@@ -1569,7 +1786,7 @@ pendingConfirmations[
             );
 
             await client.sendMessage(
-                response.data.customer_number,
+                `${response.data.customer_number}@c.us`,
 
 `⌛ انتهت مهلة تأكيد الرحلة
 
@@ -1578,8 +1795,7 @@ pendingConfirmations[
             );
 
             await client.sendMessage(
-                response.data.driver_number,
-
+            `${response.data.driver_number}@c.us`,
 `⌛ لم يرد الراكب خلال المهلة
 
 تم إلغاء الحجز المبدئي`
@@ -1607,7 +1823,7 @@ pendingConfirmations[
 
         console.log(
             "REPLY TAKE ERROR",
-            e.message
+            e.response?.data || e
         );
 
     }
@@ -1638,7 +1854,7 @@ if (
     await message.getContact();
 
 const realNumber =
-    contact.id._serialized;
+      contact.id.user;
 
         const response =
             await axios.post(
@@ -1684,7 +1900,7 @@ const realNumber =
         ) {
 
             await client.sendMessage(
-                response.data.customer_number,
+                `${response.data.customer_number}@c.us`,
 
 `🚖 تم العثور على سائق
 
@@ -1697,7 +1913,7 @@ ${response.data.destination}
             );
 
             await client.sendMessage(
-                userId,
+                `${realNumber}@c.us`,
 
                 "⏳ بانتظار موافقة الراكب"
             );
@@ -1717,7 +1933,7 @@ ${response.data.destination}
 );
 
             await client.sendMessage(
-                response.data.customer_number,
+                `${response.data.customer_number}@c.us`,
 
 `⌛ انتهت مهلة تأكيد الرحلة
 
@@ -1726,7 +1942,7 @@ ${response.data.destination}
             );
 
             await client.sendMessage(
-                response.data.driver_number,
+               `${response.data.driver_number}@c.us`,
 
 `⌛ لم يرد الراكب خلال المهلة
 

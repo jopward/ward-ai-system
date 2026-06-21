@@ -2,10 +2,13 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 
+
+
 from app.core.database import engine, Base
 from app.models.conversation import Conversation
 from app.models.driver_interest import DriverInterest
 from app.models.ride_notification import RideNotification
+from app.models.driver import Driver
 from app.services.location_service import (
     extract_pickup_destination,
     extract_time
@@ -44,6 +47,8 @@ from app.services.ride_service import (
 from app.services.ride_service import (
     get_new_rides
 )
+from app.core.database import SessionLocal
+from sqlalchemy import text
 
 app = FastAPI()
 
@@ -86,7 +91,8 @@ class TakeRideRequest(BaseModel):
     ride_id: int
 
     driver_number: str
-
+    
+  
 class CustomerConfirmRequest(BaseModel):
 
     customer_number: str
@@ -128,7 +134,20 @@ class SearchNewDriverRequest(
 
     customer_number: str
 
+class CheckDriverRequest(BaseModel):
 
+    phone: str
+    
+class RemoveDriverRequest(BaseModel):
+
+    phone: str 
+    
+class AddDriverRequest(
+    BaseModel
+):
+    phone: str
+    name: str       
+    
 @app.get("/")
 def home():
     return {
@@ -217,7 +236,8 @@ def ride_test(message: Message):
         ride_time = extract_time(
             message.text
         )
-
+        
+                
         ride_id = create_ride(
             customer_number=message.user_id,
             message=message.text,
@@ -543,6 +563,37 @@ def take_ride_api(
     "destination":
         ride["destination"]
 }
+
+@app.post("/check-driver")
+def check_driver_api(
+    data: CheckDriverRequest
+):
+
+    db = SessionLocal()
+
+    try:
+
+        result = db.execute(
+            text(
+                """
+                SELECT *
+                FROM drivers
+                WHERE phone = :phone
+                AND active = 1
+                """
+            ),
+            {
+                "phone": data.phone
+            }
+        ).fetchone()
+
+        return {
+            "allowed": result is not None
+        }
+
+    finally:
+
+        db.close()
 
 @app.post("/check-ride")
 def check_ride(
@@ -884,3 +935,105 @@ async def transcribe_audio_api(
             os.remove(
                 temp_path
             )
+            
+@app.post("/add-driver")
+def add_driver_api(
+    data: AddDriverRequest
+):
+
+    db = SessionLocal()
+
+    try:
+
+        db.execute(
+            text(
+                """
+                INSERT INTO drivers
+                (
+                    phone,
+                    name,
+                    active
+                )
+                VALUES
+                (
+                    :phone,
+                    :name,
+                    1
+                )
+                """
+            ),
+            {
+                "phone": data.phone,
+                "name": data.name
+            }
+        )
+
+        db.commit()
+
+        return {
+            "status": "added"
+        }
+
+    finally:
+
+        db.close()
+                    
+            
+@app.post("/remove-driver")
+def remove_driver_api(
+    data: RemoveDriverRequest
+):
+
+    db = SessionLocal()
+
+    try:
+
+        db.execute(
+            text(
+                """
+                DELETE FROM drivers
+                WHERE phone = :phone
+                """
+            ),
+            {
+                "phone": data.phone
+            }
+        )
+
+        db.commit()
+
+        return {
+            "status": "removed"
+        }
+
+    finally:
+
+        db.close()
+        
+@app.get("/drivers")
+def drivers_api():
+
+    db = SessionLocal()
+
+    try:
+
+        result = db.execute(
+            text(
+                """
+                SELECT phone,name
+                FROM drivers
+                """
+            )
+        ).fetchall()
+
+        return [
+            {
+                "phone": row[0],
+                "name": row[1]
+            }
+            for row in result
+        ]
+
+    finally:
+
+        db.close()                    

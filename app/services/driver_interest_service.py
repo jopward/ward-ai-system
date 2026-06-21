@@ -1,5 +1,6 @@
 from app.core.database import SessionLocal
 from app.models.driver_interest import DriverInterest
+from app.models.driver import Driver
 
 
 def add_interest(
@@ -100,7 +101,22 @@ def find_matching_drivers(
 
         for item in results:
 
-            if item.driver_number not in drivers:
+            approved_driver = (
+                db.query(Driver)
+                .filter(
+                    Driver.phone ==
+                    item.driver_number,
+                    Driver.active == 1
+                )
+                .first()
+            )
+
+            if (
+                approved_driver
+                and
+                item.driver_number
+                not in drivers
+            ):
 
                 drivers.append(
                     item.driver_number
@@ -110,4 +126,4 @@ def find_matching_drivers(
 
     finally:
 
-        db.close()        
+        db.close()
