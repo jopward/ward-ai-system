@@ -142,6 +142,17 @@ setTimeout(
 📍 ${response.data.pickup} ← ${response.data.destination}
 🕒 ${response.data.ride_time}
 📝${rideText}`                );
+await axios.post(
+    "http://127.0.0.1:8001/mark-ride-published",
+    {
+        ride_id: response.data.ride_id
+    }
+);
+
+console.log(
+    "RIDE MARKED PUBLISHED",
+    response.data.ride_id
+);
 
                 console.log(
                     "PUBLISHED TO DRIVER GROUP"
