@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-
-
+from app.models.sensor import Sensor
+import time
+app = FastAPI()
 
 
 from app.core.database import engine, Base
@@ -50,10 +51,44 @@ from app.services.ride_service import (
 from app.core.database import SessionLocal
 from sqlalchemy import text
 
-app = FastAPI()
+from app.services.sensor_service import (
+    create_sensor,
+    get_sensor_by_owner,
+    update_sensor_ready,
+    update_sensor_status
+)
+
+class SensorReady(BaseModel):
+
+    session_id: str
+
+    sensor_number: str
+class SensorStatus(BaseModel):
+
+    session_id: str
+
+    status: str
+
+class SensorCreate(BaseModel):
+
+     owner_number: str
+    
 
 Base.metadata.create_all(bind=engine)
 
+class SensorMessageRequest(
+    BaseModel
+):
+
+    sensor_number: str
+
+    customer_number: str
+
+    text: str
+
+    group_id: str
+
+    message_id: str
 
 class Message(BaseModel):
     user_id: str
@@ -92,7 +127,10 @@ class TakeRideRequest(BaseModel):
 
     driver_number: str
     
-  
+class RideRequest(BaseModel):
+
+    ride_id: int
+      
 class CustomerConfirmRequest(BaseModel):
 
     customer_number: str
@@ -263,6 +301,48 @@ def ride_test(message: Message):
 def rides():
 
     return get_all_rides()
+
+
+@app.get("/unpublished-rides")
+def unpublished_rides_api():
+    
+
+    from app.services.ride_service import (
+        get_unpublished_rides
+    )
+
+    return get_unpublished_rides()
+@app.post("/mark-ride-published")
+def mark_ride_published_api(
+    data: RideRequest
+):
+
+    from app.services.ride_service import (
+        mark_ride_published
+    )
+
+    return {
+        "status":
+            mark_ride_published(
+                data.ride_id
+            )
+    }
+
+@app.post("/mark-ride-published")
+def mark_ride_published_api(
+    data: RideRequest
+):
+
+    from app.services.ride_service import (
+        mark_ride_published
+    )
+
+    return {
+        "status":
+            mark_ride_published(
+                data.ride_id
+            )
+    }
 
 @app.post("/assign-driver")
 def assign_driver_api(
@@ -1036,4 +1116,225 @@ def drivers_api():
 
     finally:
 
-        db.close()                    
+        db.close()       
+                     
+@app.post("/sensor-message")
+def sensor_message(
+    data: SensorMessageRequest
+):
+
+    print(
+        "SENSOR =",
+        data.sensor_number
+    )
+
+    print(
+        "CUSTOMER =",
+        data.customer_number
+    )
+
+    message = Message(
+        user_id=data.customer_number,
+        text=data.text,
+        group_id=data.group_id,
+        message_id=data.message_id
+    )
+
+    return ride_test(message)
+
+@app.post("/create-sensor")
+def api_create_sensor(
+    data: SensorCreate
+):
+
+    db = SessionLocal()
+
+    try:
+
+        sensor = get_sensor_by_owner(
+            db,
+            data.owner_number
+        )
+
+        if sensor:
+
+            if sensor.status == "READY":
+
+                return {
+
+                    "status":
+                        "exists",
+
+                    "owner_number":
+                        sensor.owner_number,
+
+                    "sensor_number":
+                        sensor.sensor_number,
+
+                    "session_id":
+                        sensor.session_id,
+
+                    "ready":
+                        True
+
+                }
+
+            sensor.session_id = (
+                "sensor_" +
+                str(
+                    int(
+                        time.time() * 1000
+                    )
+                )
+            )
+
+            sensor.sensor_number = None
+
+            sensor.status = "WAITING"
+
+            db.commit()
+
+            db.refresh(sensor)
+
+            return {
+
+                "status":
+                    "created",
+
+                "session_id":
+                    sensor.session_id
+
+            }
+
+        session_id = (
+            "sensor_" +
+            str(
+                int(
+                    time.time() * 1000
+                )
+            )
+        )
+
+        sensor = create_sensor(
+            db,
+            data.owner_number,
+            session_id
+        )
+
+        return {
+
+            "status":
+                "created",
+
+            "session_id":
+                sensor.session_id
+
+        }
+
+    finally:
+
+        db.close()
+                
+@app.post("/sensor-ready")
+def api_sensor_ready(
+    data: SensorReady
+):
+
+    db = SessionLocal()
+
+    try:
+        print("SENSOR READY =", data.session_id, data.sensor_number)
+         
+        sensor = update_sensor_ready(
+            db,
+            data.session_id,
+            data.sensor_number
+        )
+
+        if not sensor:
+
+            return {
+                "status": "not_found"
+            }
+
+        return {
+            "status": "ok"
+        }
+
+    finally:
+
+        db.close()        
+        
+@app.post("/sensor-status")
+def api_sensor_status(
+    data: SensorStatus
+):
+
+    db = SessionLocal()
+
+    try:
+
+        sensor = update_sensor_status(
+            db,
+            data.session_id,
+            data.status
+        )
+
+        if not sensor:
+
+            return {
+                "status": "not_found"
+            }
+
+        return {
+            "status": "ok"
+        }
+
+    finally:
+
+        db.close()      
+        
+@app.get("/sensor/{owner_number}")
+def api_get_sensor(
+    owner_number: str
+):
+
+    db = SessionLocal()
+
+    try:
+
+        sensor = get_sensor_by_owner(
+            db,
+            owner_number
+        )
+
+        if not sensor:
+
+            return {
+                "status": "not_found"
+            }
+
+        return {
+
+            "status": "ok",
+
+            "owner_number":
+                sensor.owner_number,
+
+            "sensor_number":
+                sensor.sensor_number,
+
+            "session_id":
+                sensor.session_id,
+
+            "ready":
+                sensor.status == "READY",
+
+            "is_active":
+                sensor.is_active
+
+        }
+
+    finally:
+
+        db.close()          

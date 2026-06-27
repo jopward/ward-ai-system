@@ -1,0 +1,50 @@
+2026/06/26-19:00:50.962 20a31f Creating DB /root/ward-ai-system/.wwebjs_auth/session-sensor_1782500316628/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2026/06/26-19:00:50.982 20a31f Reusing MANIFEST /root/ward-ai-system/.wwebjs_auth/session-sensor_1782500316628/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/26-20:15:48.139 20a321 Level-0 table #5: started
+2026/06/26-20:15:48.167 20a321 Level-0 table #5: 1464300 bytes OK
+2026/06/26-20:15:48.171 20a321 Delete type=0 #3
+2026/06/26-21:16:22.482 20a32b Level-0 table #7: started
+2026/06/26-21:16:22.498 20a32b Level-0 table #7: 989629 bytes OK
+2026/06/26-21:16:22.501 20a32b Delete type=0 #4
+2026/06/26-21:17:08.186 20a320 Compacting 1@1 + 1@2 files
+2026/06/26-21:17:08.220 20a320 Generated table #8@1: 9956 keys, 759206 bytes
+2026/06/26-21:17:08.220 20a320 Compacted 1@1 + 1@2 files => 759206 bytes
+2026/06/26-21:17:08.222 20a320 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/26-21:17:08.222 20a320 Delete type=2 #7
+2026/06/26-21:17:08.222 20a320 Delete type=2 #5
+2026/06/26-21:59:54.056 20a320 Level-0 table #10: started
+2026/06/26-21:59:54.170 20a320 Level-0 table #10: 986124 bytes OK
+2026/06/26-21:59:54.193 20a320 Delete type=0 #6
+2026/06/26-22:01:33.366 20a321 Compacting 1@1 + 1@2 files
+2026/06/26-22:01:33.713 20a321 Generated table #11@1: 12541 keys, 1102725 bytes
+2026/06/26-22:01:33.713 20a321 Compacted 1@1 + 1@2 files => 1102725 bytes
+2026/06/26-22:01:33.717 20a321 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/26-22:01:33.754 20a321 Delete type=2 #10
+2026/06/26-22:01:33.754 20a321 Delete type=2 #8
+2026/06/26-22:37:14.984 20a320 Level-0 table #13: started
+2026/06/26-22:37:15.002 20a320 Level-0 table #13: 1010958 bytes OK
+2026/06/26-22:37:15.005 20a320 Delete type=0 #9
+2026/06/26-22:39:50.163 20a31f Compacting 1@1 + 1@2 files
+2026/06/26-22:39:50.197 20a31f Generated table #14@1: 14402 keys, 1410288 bytes
+2026/06/26-22:39:50.197 20a31f Compacted 1@1 + 1@2 files => 1410288 bytes
+2026/06/26-22:39:50.199 20a31f compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/26-22:39:50.200 20a31f Delete type=2 #11
+2026/06/26-22:39:50.200 20a31f Delete type=2 #13
+2026/06/26-23:12:21.433 20a320 Level-0 table #16: started
+2026/06/26-23:12:21.461 20a320 Level-0 table #16: 794973 bytes OK
+2026/06/26-23:12:21.463 20a320 Delete type=0 #12
+2026/06/26-23:14:56.993 20a31f Compacting 1@1 + 1@2 files
+2026/06/26-23:14:57.050 20a31f Generated table #17@1: 16414 keys, 1753600 bytes
+2026/06/26-23:14:57.050 20a31f Compacted 1@1 + 1@2 files => 1753600 bytes
+2026/06/26-23:14:57.051 20a31f compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/26-23:14:57.052 20a31f Delete type=2 #16
+2026/06/26-23:14:57.052 20a31f Delete type=2 #14
+2026/06/26-23:43:06.404 20a320 Level-0 table #19: started
+2026/06/26-23:43:06.424 20a320 Level-0 table #19: 801542 bytes OK
+2026/06/26-23:43:06.426 20a320 Delete type=0 #15
+2026/06/26-23:43:52.123 20a321 Compacting 1@1 + 1@2 files
+2026/06/26-23:43:52.215 20a321 Generated table #20@1: 18107 keys, 2117523 bytes
+2026/06/26-23:43:52.216 20a321 Compacted 1@1 + 1@2 files => 2117523 bytes
+2026/06/26-23:43:52.221 20a321 compacted to: files[ 0 0 1 0 0 0 0 ]
+2026/06/26-23:43:52.221 20a321 Delete type=2 #19
+2026/06/26-23:43:52.222 20a321 Delete type=2 #17

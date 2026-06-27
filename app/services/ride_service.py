@@ -86,6 +86,79 @@ def get_all_rides():
 
     return result
 
+def get_unpublished_rides():
+
+    db = SessionLocal()
+
+    try:
+
+        rides = db.query(
+            Ride
+        ).filter(
+            Ride.status == "NEW",
+            Ride.published_to_drivers == False
+        ).all()
+
+        result = []
+
+        for ride in rides:
+
+            result.append({
+
+                "id":
+                    ride.id,
+
+                "customer_number":
+                    ride.customer_number,
+
+                "message":
+                    ride.message,
+
+                "pickup":
+                    ride.pickup,
+
+                "destination":
+                    ride.destination,
+
+                "group_id":
+                    ride.group_id,
+
+                "message_id":
+                    ride.message_id
+            })
+
+        return result
+
+    finally:
+
+        db.close()
+def mark_ride_published(
+    ride_id
+):
+
+    db = SessionLocal()
+
+    try:
+
+        ride = db.query(
+            Ride
+        ).filter(
+            Ride.id == ride_id
+        ).first()
+
+        if ride:
+
+            ride.published_to_drivers = True
+
+            db.commit()
+
+            return True
+
+        return False
+
+    finally:
+
+        db.close()        
 
 def assign_driver(
     ride_id,

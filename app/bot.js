@@ -1,4 +1,4 @@
-const { Client, LocalAuth } = require('whatsapp-web.js');
+const { Client, LocalAuth  } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const axios = require('axios');
 const {
@@ -9,6 +9,25 @@ const DRIVER_GROUP_ID =
 "120363425338510691@g.us";
 
 const pendingRejectTimers = {};
+const express = require("express");
+const app = express();
+const {
+    handleIncomingRide
+} = require(
+    "./services/ride_handler"
+);
+const {
+    createSensor,
+    getSensor
+} = require(
+    "./services/sensor_manager"
+);
+const {
+    MessageMedia
+} = require(
+    "whatsapp-web.js"
+);
+app.use(express.json());
 
 const client = new Client({
 
@@ -77,8 +96,37 @@ const wifeIds = [
 
 ];
 
-//"90688670703663" للل ااا  للل ببب فف لل تت للل لل 
- 
+//"90688670703663" ee ee ee ee ee ee ii ii
+ async function processRideMessage(
+    customerNumber,
+    text,
+    groupId,
+    messageId
+) {
+
+    const response =
+        await axios.post(
+            "http://127.0.0.1:8001/ride-test",
+            {
+                user_id:
+                    customerNumber + "@c.us",
+
+                text:
+                    text,
+
+                is_wife:
+                    false,
+
+                group_id:
+                    groupId,
+
+                message_id:
+                    messageId
+            }
+        );
+
+    return response;
+}
 
 client.on('message', async (message) => {
 
@@ -236,6 +284,104 @@ if (
     await message.reply(
         "✅ تم تفعيل فلتر الكلمات المسيئة"
     );
+
+    return;
+}if (
+    message.body === "#sensor"
+) {
+
+    try {
+
+        console.log(
+            "CREATING SENSOR..."
+        );
+
+        const apiResponse =
+    await axios.post(
+        "http://127.0.0.1:8001/create-sensor",
+        {
+            owner_number:
+                message.from
+        }
+    );
+
+console.log(
+    "API =",
+    apiResponse.data
+);
+
+const response =
+    await axios.post(
+        "http://127.0.0.1:3002/create-sensor",
+        {
+            owner_number:
+                message.from,
+
+            session_id:
+                apiResponse.data.session_id
+        }
+    );
+ console.log("AFTER SENSOR SERVER");
+console.log(response.data);
+console.log(
+    response.data
+);
+
+        console.log(
+            response.data
+        );
+
+        if (
+            response.data.ready
+        ) {
+
+            await message.reply(
+`✅ لديك مستشعر مربوط بالفعل
+
+📱 ${response.data.phone}
+
+لا حاجة لإنشاء مستشعر جديد.`
+            );
+
+            return;
+
+        }
+
+      const qrFile =
+    response.data.qr_file;
+
+console.log(
+    "QR FILE =",
+    qrFile
+);
+
+const qrMedia =
+    MessageMedia.fromFilePath(
+        qrFile
+    );
+
+await client.sendMessage(
+    message.from,
+    qrMedia,
+    {
+        caption:
+`🚖 امسح هذا الـ QR
+
+بعد الربط سيصبح هاتفك مستشعر ركاب.`
+    }
+);
+
+    } catch (e) {
+console.log("SENSOR ERROR FULL =");
+console.log(e);
+console.log("MESSAGE =", e?.message);
+console.log("STACK =", e?.stack);
+
+        await message.reply(
+            "❌ فشل إنشاء المستشعر"
+        );
+
+    }
 
     return;
 }
@@ -396,16 +542,15 @@ const driverCheck =
         );
 
     if (
-        response.data.length === 0
-    ) {
+    response.data.length === 0
+) {
 
-        await client.sendMessage(
-            message.from,
-            "لا يوجد طلبات حالياً"
-        );
+    await message.reply(
+        "لا يوجد طلبات حالياً"
+    );
 
-        return;
-    }
+    return;
+}
 
     for (
         const ride
@@ -709,172 +854,33 @@ ${response.data.destination}
     }
 
     return;
-}
-                const response =
-                    await axios.post(
-                        "http://127.0.0.1:8001/ride-test",
-                        {
-                            user_id:
-                                contact.id.user + "@c.us",
-
-                            text:
-                                message.body,
-
-                            is_wife:
-                                false,
-
-                            group_id:
-                                message.from,
-
-                            message_id:
-                                message.id._serialized
-                        }
-                    );
-
-                console.log(
-                    "RIDE RESULT =",
-                    response.data
-                );
-                if (
-                    response.data.status ===
-                   "driver_post"
-                ) {
-
-                   console.log(
-                  "DRIVER POST DETECTED"
+}const response =
+    await handleIncomingRide(
+        client,
+        contact.id.user,
+        message.body,
+        message.from,
+        message.id._serialized,
+        DRIVER_GROUP_ID,
+        DRIVERS_ENABLED
     );
+console.log(
+    "RIDE RESULT =",
+    response.data
+);
 
-    return;
-}
-                if (
+if (
     response.data.status ===
-    "saved"
+    "driver_post"
 ) {
-    if (!DRIVERS_ENABLED) {
 
     console.log(
-        "DRIVER PUBLISH DISABLED"
+        "DRIVER POST DETECTED"
     );
 
     return;
 }
 
-    const drivers =
-        await axios.post(
-            "http://127.0.0.1:8001/find-drivers",
-            {
-                pickup:
-                    response.data.pickup,
-
-                destination:
-                    response.data.destination
-            }
-        );
-
-    console.log(
-        "MATCHING DRIVERS =",
-        drivers.data
-    );
-    
-
-    for (
-        const driver
-        of drivers.data
-    ) {
-
-        try {
-            const customerNumber =
-    contact.id.user;
-            await client.sendMessage(
-    `${driver}@c.us`,
-`🚖 #take ${response.data.ride_id}
-📞 ${customerNumber}
-📍 ${response.data.pickup} ← ${response.data.destination}
-🕒 ${response.data.ride_time}
-📝${message.body}`
-
-);
-await axios.post(
-    "http://127.0.0.1:8001/save-ride-notification",
-    {
-        ride_id:
-            response.data.ride_id,
-
-        driver_number:
-            driver
-    }
-);
-
-        } catch (e) {
-
-            console.log(
-                "SEND DRIVER ERROR FULL =",
-        e
-            );
-
-        }
-
-    }
-
-   setTimeout(
-    async () => {
-
-        try {
-
-            const check =
-                await axios.post(
-                    "http://127.0.0.1:8001/check-ride",
-                    {
-                        ride_id:
-                            response.data.ride_id
-                    }
-                );
-                const ride =
-                    check.data;
-
-            console.log(
-    "5 MIN CHECK =",
-    JSON.stringify(check.data)
-);
-
-            if (
-                check.data.status ===
-                "NEW"
-            ) {
-               const customerNumber =
-    contact.id.user;
-               await client.sendMessage(
-    DRIVER_GROUP_ID,
-
-`🚖 #take ${response.data.ride_id}
-📞 ${customerNumber}
-📍 ${response.data.pickup} ← ${response.data.destination}
-🕒 ${response.data.ride_time}
-📝 ${message.body}`
-
-);
-
- console.log(
-    "PUBLISHED TO DRIVER GROUP"
-);
-
-
-            }
-
-        } catch (e) {
-
-            console.log(
-                "CHECK ERROR",
-                e.message
-            );
-
-        }
-
-    },
-    300000
-);
-
-}
 
             } catch (error) {
 
@@ -2098,13 +2104,62 @@ return;
 
     } catch (error) {
 
-        console.log(
-            "MAIN ERROR =",
-            error.message
-        );
+    console.log("MAIN ERROR FULL =");
+    console.log(error);
 
-    }
+    console.log(
+        "MAIN ERROR MESSAGE =",
+        error?.message
+    );
+
+    console.log(
+        "MAIN ERROR STACK ="
+    );
+
+    console.log(
+        error?.stack
+    );
+
+}
 
 });
 
+app.post(
+    "/incoming-message",
+    async (req, res) => {
+
+        console.log(
+            "SENSOR MESSAGE =",
+            req.body
+        );
+
+        const response =
+    await handleIncomingRide(
+        client,
+        req.body.customer_number,
+        req.body.text,
+        req.body.group_id,
+        req.body.message_id,
+        DRIVER_GROUP_ID,
+        DRIVERS_ENABLED
+    );
+
+        console.log(
+            "SENSOR RIDE RESULT =",
+            response.data
+        );
+
+        res.json({
+            status: true
+        });
+
+    }
+);
+app.listen(3001, () => {
+
+    console.log(
+        "WARD BOT API STARTED"
+    );
+
+});
 client.initialize();

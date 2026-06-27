@@ -1,0 +1,20 @@
+2026/06/26-23:34:27.618 20e62b Reusing MANIFEST /root/ward-ai-system/.wwebjs_auth/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/26-23:34:27.619 20e62b Recovering log #1021
+2026/06/26-23:34:27.632 20e62b Reusing old log /root/ward-ai-system/.wwebjs_auth/session/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/001021.log 
+2026/06/26-23:51:14.231 20e62c Level-0 table #1030: started
+2026/06/26-23:51:14.272 20e62c Level-0 table #1030: 2104405 bytes OK
+2026/06/26-23:51:14.276 20e62c Delete type=0 #1021
+2026/06/26-23:52:14.258 20e62c Compacting 1@1 + 5@2 files
+2026/06/26-23:52:14.342 20e62c Generated table #1031@1: 82346 keys, 2231120 bytes
+2026/06/26-23:52:14.391 20e62c Generated table #1032@1: 58356 keys, 2617143 bytes
+2026/06/26-23:52:14.439 20e62c Generated table #1033@1: 39667 keys, 2252636 bytes
+2026/06/26-23:52:14.471 20e62c Generated table #1034@1: 31470 keys, 2174815 bytes
+2026/06/26-23:52:14.494 20e62c Generated table #1035@1: 40155 keys, 1165295 bytes
+2026/06/26-23:52:14.494 20e62c Compacted 1@1 + 5@2 files => 10441009 bytes
+2026/06/26-23:52:14.495 20e62c compacted to: files[ 0 0 5 0 0 0 0 ]
+2026/06/26-23:52:14.496 20e62c Delete type=2 #1024
+2026/06/26-23:52:14.496 20e62c Delete type=2 #1027
+2026/06/26-23:52:14.496 20e62c Delete type=2 #1025
+2026/06/26-23:52:14.496 20e62c Delete type=2 #1026
+2026/06/26-23:52:14.496 20e62c Delete type=2 #1023
+2026/06/26-23:52:14.496 20e62c Delete type=2 #1030

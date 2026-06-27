@@ -1,0 +1,5 @@
+2026/06/26-21:52:11.624 20d424 Creating DB /root/ward-ai-system/.wwebjs_auth/session-sensor_1782510729755/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb since it was missing.
+2026/06/26-21:52:11.633 20d424 Reusing MANIFEST /root/ward-ai-system/.wwebjs_auth/session-sensor_1782510729755/Default/IndexedDB/https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/06/26-23:08:50.701 20d425 Level-0 table #5: started
+2026/06/26-23:08:50.722 20d425 Level-0 table #5: 1410000 bytes OK
+2026/06/26-23:08:50.724 20d425 Delete type=0 #3

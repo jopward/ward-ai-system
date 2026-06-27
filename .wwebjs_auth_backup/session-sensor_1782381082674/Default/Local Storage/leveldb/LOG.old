@@ -1,0 +1,5 @@
+2026/06/25-09:51:23.170 1f8f33 Creating DB /root/ward-ai-system/.wwebjs_auth/session-sensor_1782381082674/Default/Local Storage/leveldb since it was missing.
+2026/06/25-09:51:23.196 1f8f33 Reusing MANIFEST /root/ward-ai-system/.wwebjs_auth/session-sensor_1782381082674/Default/Local Storage/leveldb/MANIFEST-000001
+2026/06/25-18:12:00.647 1f8f35 Level-0 table #5: started
+2026/06/25-18:12:00.650 1f8f35 Level-0 table #5: 18513 bytes OK
+2026/06/25-18:12:00.653 1f8f35 Delete type=0 #3
